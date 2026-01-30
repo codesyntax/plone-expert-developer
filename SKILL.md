@@ -22,9 +22,15 @@ Use this skill when the user asks about:
 
 - **Plone 6 is the standard**: Assume Plone 6+ with Python 3.x.
 - **Volto First**: Default to Volto (React) for the frontend unless specified otherwise (Classic UI).
+- **Use Generators**: Always use `plonecli` (or `make add`) to create backend components (content types, behaviors, services, etc.). **Manual creation of these files is forbidden** as it leads to registration errors.
 - **Best Practices**: Follow community standards (plone.api, black, flake8, prettier, eslint).
 
 ## Backend Guidelines (Python/Plone)
+
+### 0. Generator Usage (Strict)
+- **Always use `plonecli`** to generate boilerplate code.
+- **Never** manually create Python classes, ZCML registrations, or FTI XML files from scratch.
+- Use the **Automated Method** (`mrbob.ini`) whenever possible to ensure reproducibility and agent autonomy.
 
 ### 1. Content Types (Dexterity)
 
@@ -208,87 +214,222 @@ properties: {
 
 To start a new Plone 6 project with Volto, use **Cookieplone**.
 
-- Use `uvx cookieplone` to generate the project structure.
-- Select the "Plone 6 (Volto)" template.
-- This scaffolds both backend (buildout/pip) and frontend (Volto) in a monorepo-like structure or separate folders depending on options.
+- Run `uvx cookieplone` in your terminal.
+- **This is an interactive tool.** You will be prompted to provide:
+  - **Template**: Choose "Plone 6 (Volto)".
+  - **Project Title & Slug**: Name your project.
+  - **Description, Author, Email**: Metadata.
+  - **Python Version**: Usually defaults to system Python or recommended version.
+  - **Docker Support**: "Yes" is recommended for deployment.
+- Once finished, it scaffolds the backend and frontend.
 
-### Creating a new Content Type
+### Creating an Add-on Package
+**MANDATORY**: Use `plonecli` (which wraps `mr.bob`) to generate the boilerplate.
 
-Use **plonecli** to generate the boilerplate code.
+**Automated Method (Preferred)**:
+1.  **Create `mrbob.ini`**:
+    ```ini
+    [variables]
+    author.name = Plone Developer
+    author.email = dev@plone.org
+    author.github.user = plone
+    package.description = An add-on for Plone
+    package.git.init = n
+    plone.version = 6.0.0
+    python.version = python3
+    vscode_support = n
+    ```
+2.  **Run Command**:
+    - `uvx plonecli create -b mrbob.ini addon my.addon`
+3.  **Cleanup**: Delete `mrbob.ini`.
 
-- **Inside a project** (created with cookieplone): Run `make add content_type`.
-- **Standalone**: Run `uvx plonecli add content_type`.
-- Follow the prompts to define the class name and fields.
-- Review the generated schema in `content/yourtype.py` and adjust fields using `zope.schema`.
+### Creating a New Content Type
+**MANDATORY**: Use `plonecli` to generate the boilerplate.
+
+**Automated Method**:
+1.  **Create `mrbob.ini`**:
+    ```ini
+    [variables]
+    dexterity_type_name = My Type
+    dexterity_type_desc = Description of the type
+    dexterity_type_icon_expr = puzzle
+    dexterity_type_supermodel = n
+    dexterity_type_base_class = Container
+    dexterity_type_global_allow = y
+    dexterity_type_filter_content_types = n
+    dexterity_type_create_class = y
+    dexterity_type_activate_default_behaviors = y
+    ```
+2.  **Run Command**:
+    - `uvx plonecli add content_type -b mrbob.ini`
+3.  **Cleanup**: Delete `mrbob.ini`.
 
 ### Creating a Custom API Endpoint
+**MANDATORY**: Use `plonecli` to generate the boilerplate.
 
-Use **plonecli** to generate the service boilerplate.
-
-- **Inside a project**: Run `make add restapi_service`.
-- **Standalone**: Run `uvx plonecli add restapi_service`.
-- This creates the service class, registers it in `configure.zcml`, and sets up the interface.
+**Automated Method**:
+1.  **Create `mrbob.ini`**:
+    ```ini
+    [variables]
+    service_class_name = MyService
+    service_name = my-service
+    ```
+2.  **Run Command**:
+    - `uvx plonecli add restapi_service -b mrbob.ini`
+3.  **Cleanup**: Delete `mrbob.ini`.
 
 ### Creating a Behavior
+**MANDATORY**: Use `plonecli` to generate the boilerplate.
 
-Use behaviors to add reusable functionality or fields to content types.
-
-- **Command**: `uvx plonecli add behavior` (or `make add behavior`).
-- This creates an interface, a factory (optional), and registers it in `configure.zcml`.
-- You can then enable this behavior on content types via the Control Panel or FTI XML.
+**Automated Method**:
+1.  **Create `mrbob.ini`**:
+    ```ini
+    [variables]
+    behavior_name = MyBehavior
+    behavior_description = Description of the behavior
+    ```
+2.  **Run Command**:
+    - `uvx plonecli add behavior -b mrbob.ini`
+3.  **Cleanup**: Delete `mrbob.ini`.
 
 ### Creating a Control Panel
+**MANDATORY**: Use `plonecli` to generate the boilerplate.
 
-Use this to create custom configuration forms in the backend site setup.
-
-- **Command**: `uvx plonecli add controlpanel` (or `make add controlpanel`).
-- Generates the configuration interface, the form view, and the registration.
-- **Volto Note**: To expose this to Volto, ensure the registry records are accessible or create a corresponding Volto config form.
+**Automated Method**:
+1.  **Create `mrbob.ini`**:
+    ```ini
+    [variables]
+    controlpanel_python_class_name = MyControlPanel
+    ```
+2.  **Run Command**:
+    - `uvx plonecli add controlpanel -b mrbob.ini`
+3.  **Cleanup**: Delete `mrbob.ini`.
 
 ### Creating a Form
+**MANDATORY**: Use `plonecli` to generate the boilerplate.
 
-For standalone backend forms (z3c.form).
-
-- **Command**: `uvx plonecli add form` (or `make add form`).
-- **Volto Note**: Standard Plone backend forms are not rendered in Volto. Use this only if you need a specific backend HTML view or if you are wrapping it in a custom API endpoint.
+**Automated Method**:
+1.  **Create `mrbob.ini`**:
+    ```ini
+    [variables]
+    form_name = MyForm
+    form_title = My Form
+    ```
+    *(Note: Check `bobtemplates.plone` source if uncertain about variable names, as they change occasionally).*
+2.  **Run Command**:
+    - `uvx plonecli add form -b mrbob.ini`
+3.  **Cleanup**: Delete `mrbob.ini`.
 
 ### Creating an Indexer
+**MANDATORY**: Use `plonecli` to generate the boilerplate.
 
-Use indexers to create custom catalog indexes for your content.
-
-- **Command**: `uvx plonecli add indexer` (or `make add indexer`).
-- This registers an adapter that extracts the data to be indexed.
-- Remember to add the index to `portal_catalog.xml`.
+**Automated Method**:
+1.  **Create `mrbob.ini`**:
+    ```ini
+    [variables]
+    indexer_name = my_index
+    ```
+2.  **Run Command**:
+    - `uvx plonecli add indexer -b mrbob.ini`
+3.  **Cleanup**: Delete `mrbob.ini`.
 
 ### Creating a Subscriber
+**MANDATORY**: Use `plonecli` to generate the boilerplate.
 
-Use subscribers to react to events (e.g., object modified, added).
-
-- **Command**: `uvx plonecli add subscriber` (or `make add subscriber`).
-- Select the event interface (e.g., `IObjectModifiedEvent`) and the object interface.
+**Automated Method**:
+1.  **Create `mrbob.ini`**:
+    ```ini
+    [variables]
+    subscriber_handler_name = my_handler
+    ```
+    *Note: The template creates a subscriber for `IObjectModifiedEvent` on `IDexterityContent`. Edit `configure.zcml` manually to change the event or interface.*
+2.  **Run Command**:
+    - `uvx plonecli add subscriber -b mrbob.ini`
+3.  **Cleanup**: Delete `mrbob.ini`.
 
 ### Creating an Upgrade Step
+**MANDATORY**: Use `plonecli` to generate the boilerplate.
 
-Use upgrade steps to migrate the database schema or configuration between versions.
-
-- **Command**: `uvx plonecli add upgrade_step` (or `make add upgrade_step`).
-- Registers the step in `upgrades.zcml` and `profiles/default/metadata.xml`.
+**Automated Method**:
+1.  **Create `mrbob.ini`**:
+    ```ini
+    [variables]
+    upgrade_step_title = Upgrade to new version
+    upgrade_step_description = Description of what this step does
+    ```
+    *Note: Source and destination versions are automatically calculated from `metadata.xml`.*
+2.  **Run Command**:
+    - `uvx plonecli add upgrade_step -b mrbob.ini`
+3.  **Cleanup**: Delete `mrbob.ini`.
 
 ### Creating a Vocabulary
+**MANDATORY**: Use `plonecli` to generate the boilerplate.
 
-Use vocabularies to define dynamic lists of terms for choice fields.
-
-- **Command**: `uvx plonecli add vocabulary` (or `make add vocabulary`).
-- Registers a named utility or factory for the vocabulary.
+**Automated Method**:
+1.  **Create `mrbob.ini`**:
+    ```ini
+    [variables]
+    vocabulary_name = MyVocabulary
+    ```
+2.  **Run Command**:
+    - `uvx plonecli add vocabulary -b mrbob.ini`
+3.  **Cleanup**: Delete `mrbob.ini`.
 
 ### Creating Classic UI Elements (Views, Viewlets, Portlets, Themes)
+**MANDATORY**: Use `plonecli` to generate the boilerplate. Do not manually create files.
+*Note: These are for Plone Classic UI and are generally not used in a Volto-only project.*
 
-_Note: These are for Plone Classic UI and are generally not used in a Volto-only project._
+**Automated Method - View**:
+1.  **Create `mrbob.ini`**:
+    ```ini
+    [variables]
+    view_python_class = y
+    view_python_class_name = MyView
+    view_base_class = BrowserView
+    view_name = my-view
+    view_template = y
+    view_template_name = my_view
+    view_register_for = *
+    ```
+2.  **Run Command**:
+    - `uvx plonecli add view -b mrbob.ini`
+3.  **Cleanup**: Delete `mrbob.ini`.
 
-- **View**: `uvx plonecli add view`
-- **Viewlet**: `uvx plonecli add viewlet`
-- **Portlet**: `uvx plonecli add portlet`
-- **Theme**: `uvx plonecli add theme` / `theme_barceloneta`
+**Automated Method - Viewlet**:
+1.  **Create `mrbob.ini`**:
+    ```ini
+    [variables]
+    viewlet_python_class_name = MyViewlet
+    viewlet_name = myviewlet
+    viewlet_template = y
+    viewlet_template_name = viewlet
+    ```
+2.  **Run Command**:
+    - `uvx plonecli add viewlet -b mrbob.ini`
+3.  **Cleanup**: Delete `mrbob.ini`.
+
+**Automated Method - Portlet**:
+1.  **Create `mrbob.ini`**:
+    ```ini
+    [variables]
+    portlet_name = Weather
+    ```
+2.  **Run Command**:
+    - `uvx plonecli add portlet -b mrbob.ini`
+3.  **Cleanup**: Delete `mrbob.ini`.
+
+**Automated Method - Theme**:
+1.  **Create `mrbob.ini`**:
+    ```ini
+    [variables]
+    theme.name = My Theme
+    ```
+2.  **Run Command**:
+    - `uvx plonecli add theme -b mrbob.ini`
+    - Or for specific starting points: `theme_barceloneta`, `theme_basic`.
+3.  **Cleanup**: Delete `mrbob.ini`.
+
+**Interactive Method**: `uvx plonecli add view`, `viewlet`, etc.
 
 ### Volto Block Development Patterns
 
