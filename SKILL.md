@@ -81,6 +81,49 @@ Use `plone.api` for all standard operations. It is the canonical API for Plone.
 - Creating custom blocks is the primary way to extend page layout capabilities.
 - A block consists of: `View` component, `Edit` component, `schema.js`, and `icon`.
 
+## Classic UI Guidelines (Diazo)
+
+*Use this when developing themes for Plone Classic UI (non-Volto).*
+
+Diazo maps a static HTML theme to dynamic Plone content using `rules.xml`.
+
+### 1. Structure (rules.xml)
+
+```xml
+<rules
+    xmlns="http://namespaces.plone.org/diazo"
+    xmlns:css="http://namespaces.plone.org/diazo/css"
+    xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+
+    <theme href="index.html" />
+
+    <!-- Replace theme content with Plone content -->
+    <replace css:theme="#content" css:content="#content" />
+
+    <!-- Drop unwanted elements -->
+    <drop css:theme=".promo-banner" css:if-not-content=".section-front-page" />
+
+    <!-- Insert content -->
+    <after css:theme="#logo" css:content="#portal-searchbox" />
+
+</rules>
+```
+
+### 2. Common Directives
+
+- `<theme>`: Specifies the static HTML file.
+- `<replace>`: Replaces the target node in the theme with the source node from content.
+- `<drop>`: Removes the target node from the output.
+- `<before>` / `<after>`: Inserts content before or after the target theme node.
+- `<merge>`: Merges attributes (e.g., class names) from content to theme.
+
+### 3. Conditions
+
+Use conditions to apply rules only on specific pages.
+
+- `css:if-content="body.section-front-page"`: Only on front page.
+- `css:if-path="/news"`: Only on paths starting with /news.
+
 ## Reference: Common Field Types & Widgets
 
 ### Backend Fields (zope.schema)
@@ -247,106 +290,76 @@ _Note: These are for Plone Classic UI and are generally not used in a Volto-only
 - **Portlet**: `uvx plonecli add portlet`
 - **Theme**: `uvx plonecli add theme` / `theme_barceloneta`
 
-### Creating a Custom Volto Block
+### Volto Block Development Patterns
 
-To create a custom block, you manually create the components and register them.
+#### 1. Custom Block (View, Edit & Schema)
+The standard way to create a fully custom block.
+- **View (`View.jsx`)**: Renders the block content. Receives `data` props.
+- **Edit (`Edit.jsx`)**: Renders the `SidebarPortal` with `BlockDataForm` to edit settings.
+- **Schema (`schema.js`)**: JSON schema defining the fields.
+- **Registration**:
+    ```javascript
+    config.blocks.blocksConfig.myBlock = {
+        id: 'myBlock',
+        title: 'My Block',
+        icon: icon,
+        group: 'common',
+        view: MyBlockView,
+        edit: MyBlockEdit,
+        restricted: false,
+        mostUsed: false,
+        sidebarTab: 1,
+    };
+    ```
 
-**1. File Structure**
-Organize your block in `src/components/Blocks/MyBlock/`:
+#### 2. Block Variations
+Use variations to provide multiple templates for the same block (e.g., a Listing block that displays as a List or a Grid).
+- **Create View**: Create a React component for the variation (e.g., `CardView.jsx`).
+- **Register**:
+    ```javascript
+    config.blocks.blocksConfig.listing.variations = [
+        ...config.blocks.blocksConfig.listing.variations,
+        {
+            id: 'cards',
+            isDefault: false,
+            title: 'Cards',
+            template: CardView,
+        },
+    ];
+    ```
 
-- `View.jsx`: The frontend display component.
-- `Edit.jsx`: The editor component (admin UI).
-- `schema.js`: The configuration schema for the sidebar.
-- `icon.svg`: The SVG icon for the block chooser.
+#### 3. Schema Enhancers
+Use Schema Enhancers to dynamically modify a block's schema. This is useful when a Variation requires extra fields (e.g., "Number of Columns" for a Grid variation).
+- **Enhancer Function**:
+    ```javascript
+    const enhanceSchema = ({ schema, formData, intl }) => {
+        if (formData.variation === 'cards') {
+            // Add a new field
+            schema.properties.columns = {
+                title: 'Columns',
+                type: 'number',
+            };
+            schema.fieldsets[0].fields.push('columns');
+        }
+        return schema;
+    };
+    ```
+- **Register**:
+    ```javascript
+    config.blocks.blocksConfig.listing.schemaEnhancer = enhanceSchema;
+    ```
+    *Note: You can also compose multiple enhancers.*
 
-**2. View Component (View.jsx)**
-Receives the block data via `props.data`.
-
-```jsx
-const View = ({ data }) => (
-  <div className="my-block">
-    <h3>{data.title}</h3>
-    <p>{data.description}</p>
-  </div>
-);
-export default View;
-```
-
-**3. Edit Component (Edit.jsx)**
-Handles the editing UI using the Sidebar.
-
-```jsx
-import { SidebarPortal, BlockDataForm } from "@plone/volto/components";
-import schema from "./schema";
-
-const Edit = (props) => {
-  const { block, onChangeBlock, data, selected } = props;
-  return (
-    <>
-      <View {...props} /> {/* Render preview */}
-      <SidebarPortal selected={selected}>
-        <BlockDataForm
-          schema={schema}
-          title="My Block Settings"
-          onChangeField={(id, value) => {
-            onChangeBlock(block, { ...data, [id]: value });
-          }}
-          formData={data}
-        />
-      </SidebarPortal>
-    </>
-  );
-};
-export default Edit;
-```
-
-**4. Schema (schema.js)**
-Define fields for the sidebar form.
-
-```javascript
-export default {
-  title: "My Block",
-  fieldsets: [
-    {
-      id: "default",
-      title: "Default",
-      fields: ["title", "description"],
-    },
-  ],
-  properties: {
-    title: {
-      title: "Title",
-      widget: "text", // or 'textarea', 'richtext', etc.
-    },
-    description: {
-      title: "Description",
-      widget: "textarea",
-    },
-  },
-  required: [],
-};
-```
-
-**5. Registration (config.js)**
-Register the block in your project configuration.
-
-```javascript
-import MyBlockView from "./components/Blocks/MyBlock/View";
-import MyBlockEdit from "./components/Blocks/MyBlock/Edit";
-import icon from "./components/Blocks/MyBlock/icon.svg";
-
-export default function applyConfig(config) {
-  config.blocks.blocksConfig.myBlock = {
-    id: "myBlock",
-    title: "My Block",
-    icon: icon,
-    group: "common",
-    view: MyBlockView,
-    edit: MyBlockEdit,
-    restricted: false,
-    mostUsed: false,
-    sidebarTab: 1,
-  };
-  return config;
-}
-```
+#### 4. Custom Schema and View (Simple)
+If you don't need a custom `Edit` component (because the default block editor is sufficient and you only have simple fields), you can omit `edit` in the config. Volto will generate a default editor based on your schema.
+- **Requirements**: A `View` component and a `blockSchema`.
+- **Registration**:
+    ```javascript
+    config.blocks.blocksConfig.simpleBlock = {
+        id: 'simpleBlock',
+        title: 'Simple Block',
+        view: SimpleView,
+        blockSchema: simpleSchema, 
+        // No 'edit' key needed; Volto uses DefaultEditBlockData
+    };
+    ```
