@@ -29,10 +29,13 @@ Use this skill when the user asks about:
 
 ### 0. Generator Usage (Strict)
 
-- If asked to create a project scaffold, \*\*always use `uvx cookieplone` to do so. Be sure to know whether you need to create a Volto project or Classic UI project. If in doubt or no instructions are given to you, default to Volto project.
+- If asked to create a project **always use `uvx cookieplone` to do so**. Be sure to know whether you need to create a Volto project or Classic UI project. If in doubt or no instructions are given to you, default to Volto project. Check the "Creating a New Project" section below to learn how to automate the creation of the project instead of going the interactive way:
+  - `uvx cookieplone project` for Volto projects
+  - `uvx cookieplone classic_project` for Classic UI project.
 - **Always use `plonecli`** to generate boilerplate code.
 - **Never** manually create Python classes, ZCML registrations, or FTI XML files from scratch.
 - Use the **Automated Method** (`mrbob.ini`) whenever possible to ensure reproducibility and agent autonomy.
+- \*\*Never use pip or zc.buildout to bootstrap a new project if you are not instructed to do so explicitely.
 
 ### 1. Content Types (Dexterity)
 
@@ -297,6 +300,8 @@ Refer to the `cookiecutter.json` file of the `cookiecutter-plone-starter` templa
 
 **Automated Method (Preferred)**:
 
+*Note: Before running any `plonecli add` command, ensure your Git history is clean. If there are uncommitted changes, commit them **before** proceeding.*
+
 1.  **Create `mrbob.ini`**: Create this file in the current working directory where you intend to run `uvx plonecli create`.
     ```ini
     [variables]
@@ -319,18 +324,34 @@ Refer to the `cookiecutter.json` file of the `cookiecutter-plone-starter` templa
 
 **Automated Method**:
 
+*Note: Before running any `plonecli add` command, ensure your Git history is clean. If there are uncommitted changes, commit them **before** proceeding.*
+
 1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
+    *Note: The `plonecli add` command should be run from the directory where your `pyproject.toml` file is located, which is usually in the `backend` folder.*
     ```ini
     [variables]
+    # The human-readable name of the content type (e.g., "My Type"). Mandatory.
     dexterity_type_name = My Type
+    # A brief description of the content type.
     dexterity_type_desc = Description of the type
+    # The icon expression for the content type (e.g., "puzzle", "document").
     dexterity_type_icon_expr = puzzle
+    # Whether to use a supermodel (y/n). If 'y', a base class is needed.
     dexterity_type_supermodel = n
+    # The base class for the content type (e.g., "Container", "Item").
     dexterity_type_base_class = Container
+    # Whether the content type can be created anywhere in the site (y/n).
     dexterity_type_global_allow = y
+    # Whether to filter allowed content types within this container (y/n).
+    # This question is skipped if 'dexterity_type_base_class' is not "Container".
     dexterity_type_filter_content_types = n
+    # Whether to create a Python class for the content type (y/n).
     dexterity_type_create_class = y
+    # Whether to activate default behaviors for the content type (y/n).
     dexterity_type_activate_default_behaviors = y
+    # The name of the parent container type if 'dexterity_type_global_allow' is 'n'.
+    # This question is skipped if 'dexterity_type_global_allow' is 'y'.
+    # dexterity_parent_container_type_name = MyFolder
     ```
 2.  **Run Command**:
     - `uvx plonecli add -b mrbob.ini content_type`
@@ -342,11 +363,17 @@ Refer to the `cookiecutter.json` file of the `cookiecutter-plone-starter` templa
 
 **Automated Method**:
 
+*Note: Before running any `plonecli add` command, ensure your Git history is clean. If there are uncommitted changes, commit them **before** proceeding.*
+
 1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
+    *Note: The `plonecli add` command should be run from the directory where your `pyproject.toml` file is located, which is usually in the `backend` folder.*
     ```ini
     [variables]
+    # The Python class name for your REST API service (e.g., "MyService"). Mandatory.
     service_class_name = MyService
-    service_name = my-service
+    # The URL segment for the REST API service (e.g., "my-service").
+    # If 'service_class_name' is provided, this defaults to a normalized version of it.
+    # service_name = my-service
     ```
 2.  **Run Command**:
     - `uvx plonecli add -b mrbob.ini restapi_service`
@@ -358,10 +385,15 @@ Refer to the `cookiecutter.json` file of the `cookiecutter-plone-starter` templa
 
 **Automated Method**:
 
+*Note: Before running any `plonecli add` command, ensure your Git history is clean. If there are uncommitted changes, commit them **before** proceeding.*
+
 1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
+    *Note: The `plonecli add` command should be run from the directory where your `pyproject.toml` file is located, which is usually in the `backend` folder.*
     ```ini
     [variables]
+    # The human-readable name of the behavior (e.g., "MyBehavior"). Mandatory.
     behavior_name = MyBehavior
+    # A brief description of the behavior.
     behavior_description = Description of the behavior
     ```
 2.  **Run Command**:
@@ -374,9 +406,13 @@ Refer to the `cookiecutter.json` file of the `cookiecutter-plone-starter` templa
 
 **Automated Method**:
 
+*Note: Before running any `plonecli add` command, ensure your Git history is clean. If there are uncommitted changes, commit them **before** proceeding.*
+
 1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
+    *Note: The `plonecli add` command should be run from the directory where your `pyproject.toml` file is located, which is usually in the `backend` folder.*
     ```ini
     [variables]
+    # The Python class name for the control panel (e.g., "MyControlPanel"). Mandatory.
     controlpanel_python_class_name = MyControlPanel
     ```
 2.  **Run Command**:
@@ -389,11 +425,23 @@ Refer to the `cookiecutter.json` file of the `cookiecutter-plone-starter` templa
 
 **Automated Method**:
 
+*Note: Before running any `plonecli add` command, ensure your Git history is clean. If there are uncommitted changes, commit them **before** proceeding.*
+
 1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
+    *Note: The `plonecli add` command should be run from the directory where your `pyproject.toml` file is located, which is usually in the `backend` folder.*
     ```ini
     [variables]
-    form_name = MyForm
+    # The Python class name for the form (e.g., "MyForm"). Mandatory.
+    form_python_class_name = MyForm
+    # The human-readable title of the form. This is used in the UI. Mandatory.
     form_title = My Form
+    # The name of the form (used in the URL). If not provided, it's generated from form_python_class_name.
+    # form_name = my-form
+    # The interface the form registers for (e.g., "IPloneSiteRoot", "IDexterityContent").
+    # Defaults to "IPloneSiteRoot" if not specified.
+    # form_register_for = IPloneSiteRoot
+    # The permission required to access the form. Defaults to "cmf.ManagePortal".
+    # form_permission = cmf.ManagePortal
     ```
     _(Note: Check `bobtemplates.plone` source if uncertain about variable names, as they change occasionally)._
 2.  **Run Command**:
@@ -406,9 +454,13 @@ Refer to the `cookiecutter.json` file of the `cookiecutter-plone-starter` templa
 
 **Automated Method**:
 
+*Note: Before running any `plonecli add` command, ensure your Git history is clean. If there are uncommitted changes, commit them **before** proceeding.*
+
 1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
+    *Note: The `plonecli add` command should be run from the directory where your `pyproject.toml` file is located, which is usually in the `backend` folder.*
     ```ini
     [variables]
+    # The name of the indexer (e.g., "my_index"). This will be used as the field name in the catalog. Mandatory.
     indexer_name = my_index
     ```
 2.  **Run Command**:
@@ -421,9 +473,13 @@ Refer to the `cookiecutter.json` file of the `cookiecutter-plone-starter` templa
 
 **Automated Method**:
 
+*Note: Before running any `plonecli add` command, ensure your Git history is clean. If there are uncommitted changes, commit them **before** proceeding.*
+
 1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
+    *Note: The `plonecli add` command should be run from the directory where your `pyproject.toml` file is located, which is usually in the `backend` folder.*
     ```ini
     [variables]
+    # The name of the subscriber handler (e.g., "my_handler"). Mandatory.
     subscriber_handler_name = my_handler
     ```
     _Note: The template creates a subscriber for `IObjectModifiedEvent` on `IDexterityContent`. Edit `configure.zcml` manually to change the event or interface._
@@ -437,10 +493,15 @@ Refer to the `cookiecutter.json` file of the `cookiecutter-plone-starter` templa
 
 **Automated Method**:
 
+*Note: Before running any `plonecli add` command, ensure your Git history is clean. If there are uncommitted changes, commit them **before** proceeding.*
+
 1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
+    *Note: The `plonecli add` command should be run from the directory where your `pyproject.toml` file is located, which is usually in the `backend` folder.*
     ```ini
     [variables]
+    # A descriptive title for the upgrade step. Mandatory.
     upgrade_step_title = Upgrade to new version
+    # A brief explanation of what this upgrade step accomplishes.
     upgrade_step_description = Description of what this step does
     ```
     _Note: Source and destination versions are automatically calculated from `metadata.xml`._
@@ -454,10 +515,16 @@ Refer to the `cookiecutter.json` file of the `cookiecutter-plone-starter` templa
 
 **Automated Method**:
 
+*Note: Before running any `plonecli add` command, ensure your Git history is clean. If there are uncommitted changes, commit them **before** proceeding.*
+
 1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
+    *Note: The `plonecli add` command should be run from the directory where your `pyproject.toml` file is located, which is usually in the `backend` folder.*
     ```ini
     [variables]
+    # The name of the vocabulary (e.g., "MyVocabulary"). Mandatory.
     vocabulary_name = MyVocabulary
+    # Whether this is a static catalog vocabulary (y/n). Defaults to 'n'.
+    # is_static_catalog_vocab = n
     ```
 2.  **Run Command**:
     - `uvx plonecli add -b mrbob.ini vocabulary`
@@ -470,16 +537,28 @@ _Note: These are for Plone Classic UI and are generally not used in a Volto-only
 
 **Automated Method - View**:
 
+*Note: Before running any `plonecli add` command, ensure your Git history is clean. If there are uncommitted changes, commit them **before** proceeding.*
+
 1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
+    *Note: The `plonecli add` command should be run from the directory where your `pyproject.toml` file is located, which is usually in the `backend` folder.*
     ```ini
     [variables]
+    # Whether to create a Python class for the view (y/n). Mandatory.
     view_python_class = y
+    # The Python class name for the view (e.g., "MyView"). Only asked if 'view_python_class' is 'y'. Mandatory if 'view_python_class' is 'y'.
     view_python_class_name = MyView
+    # The base class for the view (e.g., "BrowserView", "DefaultView"). Defaults to "BrowserView".
     view_base_class = BrowserView
+    # The name of the view (used in the URL, e.g., "my-view"). If 'view_python_class' is 'y', it defaults to a normalized version of 'view_python_class_name'. Otherwise, it defaults to "my_view".
     view_name = my-view
+    # Whether to create a ZPT template (.pt file) for the view (y/n). Mandatory.
     view_template = y
+    # The name of the ZPT template file (e.g., "my_view.pt"). Only asked if 'view_template' is 'y'. If 'view_python_class' is 'y', it defaults to a normalized version of 'view_python_class_name'. Otherwise, it defaults to "my_view".
     view_template_name = my_view
+    # The interface the view registers for (e.g., "*" for any content, "IContentish" for content objects). Defaults to "*".
     view_register_for = *
+    # The permission required to access the view. Defaults to "zope2.View".
+    # view_permission = zope2.View
     ```
 2.  **Run Command**:
     - `uvx plonecli add -b mrbob.ini view`
@@ -487,36 +566,54 @@ _Note: These are for Plone Classic UI and are generally not used in a Volto-only
 
 **Automated Method - Viewlet**:
 
+*Note: Before running any `plonecli add` command, ensure your Git history is clean. If there are uncommitted changes, commit them **before** proceeding.*
+
 1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
+    *Note: The `plonecli add` command should be run from the directory where your `pyproject.toml` file is located, which is usually in the `backend` folder.*
     ```ini
     [variables]
+    # The Python class name for the viewlet (e.g., "MyViewlet"). Mandatory.
     viewlet_python_class_name = MyViewlet
+    # The name of the viewlet (used in the URL). Defaults to a normalized version of 'viewlet_python_class_name'.
     viewlet_name = myviewlet
+    # Whether to create a ZPT template (.pt file) for the viewlet (y/n). Mandatory.
     viewlet_template = y
+    # The name of the ZPT template file (e.g., "viewlet.pt"). Only asked if 'viewlet_template' is 'y'. Defaults to a normalized version of 'viewlet_name'.
     viewlet_template_name = viewlet
     ```
+    _Note: The `for` attribute in the `browser:viewlet` registration defaults to `plone.app.contenttypes.interfaces.IDocument`, the `manager` to `plone.app.layout.viewlets.interfaces.IAboveContentTitle`, and the `permission` to `zope2.View`. These are not directly configurable via `mrbob.ini` for this template._
 2.  **Run Command**:
     - `uvx plonecli add -b mrbob.ini viewlet`
 3.  **Cleanup**: Delete `mrbob.ini`.
 
 **Automated Method - Portlet**:
 
+*Note: Before running any `plonecli add` command, ensure your Git history is clean. If there are uncommitted changes, commit them **before** proceeding.*
+
 1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
+    *Note: The `plonecli add` command should be run from the directory where your `pyproject.toml` file is located, which is usually in the `backend` folder.*
     ```ini
     [variables]
+    # The human-readable name of the portlet (e.g., "Weather"). This will be used for the title and for generating other names. Mandatory.
     portlet_name = Weather
     ```
+    _Note: The template automatically derives various internal names (e.g., Python class names, ZCML registration names) from `portlet_name`. The default `description` in `portlets.xml` is "A portlet which can render weather of the given place." and the `for interface` is set to `plone.app.portlets.interfaces.IColumn` (for right, left, and footer columns). These are not directly configurable via `mrbob.ini` for this template._
 2.  **Run Command**:
     - `uvx plonecli add -b mrbob.ini portlet`
 3.  **Cleanup**: Delete `mrbob.ini`.
 
 **Automated Method - Theme**:
 
+*Note: Before running any `plonecli add` command, ensure your Git history is clean. If there are uncommitted changes, commit them **before** proceeding.*
+
 1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
+    *Note: The `plonecli add` command should be run from the directory where your `pyproject.toml` file is located, which is usually in the `backend` folder.*
     ```ini
     [variables]
+    # The human-readable name of the theme (e.g., "My Theme"). Mandatory.
     theme.name = My Theme
     ```
+    _Note: The choice between `theme`, `theme_barceloneta`, or `theme_basic` is made at the `plonecli add` command level, not through `mrbob.ini` variables within the `theme` template itself. The `theme.name` variable is the only configurable option in `mrbob.ini` for themes._
 2.  **Run Command**:
     - `uvx plonecli add -b mrbob.ini theme`
     - Or for specific starting points: `theme_barceloneta`, `theme_basic`.
