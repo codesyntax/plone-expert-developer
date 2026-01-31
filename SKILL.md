@@ -60,6 +60,7 @@ Here are some of the most commonly used and important behaviors provided by Plon
 - `plone.dublincore`: This behavior includes `plone.basic`, `plone.categorization`, and `plone.ownership`. Usually, and if the user does not say anything, this behavior should be included.
 - `plone.shortname`: Gives the ability to rename an item from its edit form.
 - `plone.namefromtitle`: Automatically generate short URL name for content based on its initial title
+- `plone.namefromfilename`: Automatically generate short URL name for content based on its primary field file name (this is enabled by default in the default provided `File` and `Image` content-types.)
 
 ** Some other interesting behaviors **:
 
@@ -76,7 +77,7 @@ Here are some of the most commonly used and important behaviors provided by Plon
 - `plone.eventcontact`: Contact extension for Events: `contact_name`, `contact_email`, `contact_phone` and `event_url` fields.
 
 **Important Note on Default Behaviors:**
-Always inspect the `.xml` file generated for your new content type after running `uvx plonecli add -b ../mrbob.ini content_type`. This file, typically found in `src/my.package/my/package/profiles/default/types/MyType.xml`, will list the behaviors that are automatically included by the template. This ensures you avoid duplicating fields or functionality when adding new behaviors based on user requests.
+Always inspect the `.xml` file generated for your new content type after running `uvx plonecli add -b mrbob.ini content_type`. This file, typically found in `src/my.package/my/package/profiles/default/types/MyType.xml`, will list the behaviors that are automatically included by the template. This ensures you avoid duplicating fields or functionality when adding new behaviors based on user requests.
 
 When a user asks for a field, consider if an existing behavior already provides that functionality before defining a new schema field.
 
@@ -296,7 +297,7 @@ Refer to the `cookiecutter.json` file of the `cookiecutter-plone-starter` templa
 
 **Automated Method (Preferred)**:
 
-1.  **Create `mrbob.ini`**:
+1.  **Create `mrbob.ini`**: Create this file in the current working directory where you intend to run `uvx plonecli create`.
     ```ini
     [variables]
     author.name = Plone Developer
@@ -309,7 +310,7 @@ Refer to the `cookiecutter.json` file of the `cookiecutter-plone-starter` templa
     vscode_support = n
     ```
 2.  **Run Command**:
-    - `uvx plonecli add -b ../mrbob.ini addon my.addon`
+    - `uvx plonecli create -b mrbob.ini addon my.addon`
 3.  **Cleanup**: Delete `mrbob.ini`.
 
 ### Creating a New Content Type
@@ -318,7 +319,7 @@ Refer to the `cookiecutter.json` file of the `cookiecutter-plone-starter` templa
 
 **Automated Method**:
 
-1.  **Create `mrbob.ini`**:
+1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
     ```ini
     [variables]
     dexterity_type_name = My Type
@@ -332,7 +333,7 @@ Refer to the `cookiecutter.json` file of the `cookiecutter-plone-starter` templa
     dexterity_type_activate_default_behaviors = y
     ```
 2.  **Run Command**:
-    - `uvx plonecli add -b ../mrbob.ini content_type`
+    - `uvx plonecli add -b mrbob.ini content_type`
 3.  **Cleanup**: Delete `mrbob.ini`.
 
 ### Creating a Custom API Endpoint
@@ -341,14 +342,14 @@ Refer to the `cookiecutter.json` file of the `cookiecutter-plone-starter` templa
 
 **Automated Method**:
 
-1.  **Create `mrbob.ini`**:
+1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
     ```ini
     [variables]
     service_class_name = MyService
     service_name = my-service
     ```
 2.  **Run Command**:
-    - `uvx plonecli add -b ../mrbob.ini restapi_service`
+    - `uvx plonecli add -b mrbob.ini restapi_service`
 3.  **Cleanup**: Delete `mrbob.ini`.
 
 ### Creating a Behavior
@@ -357,14 +358,14 @@ Refer to the `cookiecutter.json` file of the `cookiecutter-plone-starter` templa
 
 **Automated Method**:
 
-1.  **Create `mrbob.ini`**:
+1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
     ```ini
     [variables]
     behavior_name = MyBehavior
     behavior_description = Description of the behavior
     ```
 2.  **Run Command**:
-    - `uvx plonecli add -b ../mrbob.ini behavior`
+    - `uvx plonecli add -b mrbob.ini behavior`
 3.  **Cleanup**: Delete `mrbob.ini`.
 
 ### Creating a Control Panel
@@ -373,13 +374,13 @@ Refer to the `cookiecutter.json` file of the `cookiecutter-plone-starter` templa
 
 **Automated Method**:
 
-1.  **Create `mrbob.ini`**:
+1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
     ```ini
     [variables]
     controlpanel_python_class_name = MyControlPanel
     ```
 2.  **Run Command**:
-    - `uvx plonecli add -b ../mrbob.ini controlpanel`
+    - `uvx plonecli add -b mrbob.ini controlpanel`
 3.  **Cleanup**: Delete `mrbob.ini`.
 
 ### Creating a Form
@@ -388,7 +389,7 @@ Refer to the `cookiecutter.json` file of the `cookiecutter-plone-starter` templa
 
 **Automated Method**:
 
-1.  **Create `mrbob.ini`**:
+1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
     ```ini
     [variables]
     form_name = MyForm
@@ -396,7 +397,7 @@ Refer to the `cookiecutter.json` file of the `cookiecutter-plone-starter` templa
     ```
     _(Note: Check `bobtemplates.plone` source if uncertain about variable names, as they change occasionally)._
 2.  **Run Command**:
-    - `uvx plonecli add -b ../mrbob.ini form`
+    - `uvx plonecli add -b mrbob.ini form`
 3.  **Cleanup**: Delete `mrbob.ini`.
 
 ### Creating an Indexer
@@ -405,13 +406,13 @@ Refer to the `cookiecutter.json` file of the `cookiecutter-plone-starter` templa
 
 **Automated Method**:
 
-1.  **Create `mrbob.ini`**:
+1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
     ```ini
     [variables]
     indexer_name = my_index
     ```
 2.  **Run Command**:
-    - `uvx plonecli add -b ../mrbob.ini indexer`
+    - `uvx plonecli add -b mrbob.ini indexer`
 3.  **Cleanup**: Delete `mrbob.ini`.
 
 ### Creating a Subscriber
@@ -420,14 +421,14 @@ Refer to the `cookiecutter.json` file of the `cookiecutter-plone-starter` templa
 
 **Automated Method**:
 
-1.  **Create `mrbob.ini`**:
+1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
     ```ini
     [variables]
     subscriber_handler_name = my_handler
     ```
     _Note: The template creates a subscriber for `IObjectModifiedEvent` on `IDexterityContent`. Edit `configure.zcml` manually to change the event or interface._
 2.  **Run Command**:
-    - `uvx plonecli add -b ../mrbob.ini subscriber`
+    - `uvx plonecli add -b mrbob.ini subscriber`
 3.  **Cleanup**: Delete `mrbob.ini`.
 
 ### Creating an Upgrade Step
@@ -436,7 +437,7 @@ Refer to the `cookiecutter.json` file of the `cookiecutter-plone-starter` templa
 
 **Automated Method**:
 
-1.  **Create `mrbob.ini`**:
+1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
     ```ini
     [variables]
     upgrade_step_title = Upgrade to new version
@@ -444,7 +445,7 @@ Refer to the `cookiecutter.json` file of the `cookiecutter-plone-starter` templa
     ```
     _Note: Source and destination versions are automatically calculated from `metadata.xml`._
 2.  **Run Command**:
-    - `uvx plonecli add -b ../mrbob.ini upgrade_step`
+    - `uvx plonecli add -b mrbob.ini upgrade_step`
 3.  **Cleanup**: Delete `mrbob.ini`.
 
 ### Creating a Vocabulary
@@ -453,13 +454,13 @@ Refer to the `cookiecutter.json` file of the `cookiecutter-plone-starter` templa
 
 **Automated Method**:
 
-1.  **Create `mrbob.ini`**:
+1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
     ```ini
     [variables]
     vocabulary_name = MyVocabulary
     ```
 2.  **Run Command**:
-    - `uvx plonecli add -b ../mrbob.ini vocabulary`
+    - `uvx plonecli add -b mrbob.ini vocabulary`
 3.  **Cleanup**: Delete `mrbob.ini`.
 
 ### Creating Classic UI Elements (Views, Viewlets, Portlets, Themes)
@@ -469,7 +470,7 @@ _Note: These are for Plone Classic UI and are generally not used in a Volto-only
 
 **Automated Method - View**:
 
-1.  **Create `mrbob.ini`**:
+1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
     ```ini
     [variables]
     view_python_class = y
@@ -481,12 +482,12 @@ _Note: These are for Plone Classic UI and are generally not used in a Volto-only
     view_register_for = *
     ```
 2.  **Run Command**:
-    - `uvx plonecli add -b ../mrbob.ini view`
+    - `uvx plonecli add -b mrbob.ini view`
 3.  **Cleanup**: Delete `mrbob.ini`.
 
 **Automated Method - Viewlet**:
 
-1.  **Create `mrbob.ini`**:
+1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
     ```ini
     [variables]
     viewlet_python_class_name = MyViewlet
@@ -495,29 +496,29 @@ _Note: These are for Plone Classic UI and are generally not used in a Volto-only
     viewlet_template_name = viewlet
     ```
 2.  **Run Command**:
-    - `uvx plonecli add -b ../mrbob.ini viewlet`
+    - `uvx plonecli add -b mrbob.ini viewlet`
 3.  **Cleanup**: Delete `mrbob.ini`.
 
 **Automated Method - Portlet**:
 
-1.  **Create `mrbob.ini`**:
+1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
     ```ini
     [variables]
     portlet_name = Weather
     ```
 2.  **Run Command**:
-    - `uvx plonecli add -b ../mrbob.ini portlet`
+    - `uvx plonecli add -b mrbob.ini portlet`
 3.  **Cleanup**: Delete `mrbob.ini`.
 
 **Automated Method - Theme**:
 
-1.  **Create `mrbob.ini`**:
+1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
     ```ini
     [variables]
     theme.name = My Theme
     ```
 2.  **Run Command**:
-    - `uvx plonecli add -b ../mrbob.ini theme`
+    - `uvx plonecli add -b mrbob.ini theme`
     - Or for specific starting points: `theme_barceloneta`, `theme_basic`.
 3.  **Cleanup**: Delete `mrbob.ini`.
 
