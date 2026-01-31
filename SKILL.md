@@ -28,6 +28,8 @@ Use this skill when the user asks about:
 ## Backend Guidelines (Python/Plone)
 
 ### 0. Generator Usage (Strict)
+
+- If asked to create a project scaffold, \*\*always use `uvx cookieplone` to do so. Be sure to know whether you need to create a Volto project or Classic UI project. If in doubt or no instructions are given to you, default to Volto project.
 - **Always use `plonecli`** to generate boilerplate code.
 - **Never** manually create Python classes, ZCML registrations, or FTI XML files from scratch.
 - Use the **Automated Method** (`mrbob.ini`) whenever possible to ensure reproducibility and agent autonomy.
@@ -37,6 +39,46 @@ Use this skill when the user asks about:
 - Prefer **Python schemas** (plone.supermodel) over XML models.
 - Use `plone.api` for all high-level interactions (create, get, search, etc.).
 - Isolate business logic in **Behaviors** or **Adapters**.
+
+When creating a content type based on user input and they request specific fields, prioritize using existing Plone behaviors over adding new fields directly to the content type's schema. Behaviors are reusable components that add fields and functionality to content types.
+
+Here are some of the most commonly used and important behaviors provided by Plone, which you can activate in your content type's XML definition (e.g., in `profiles/default/types/MyType.xml`):
+
+**Common Behaviors for Content (from `plone.app.contenttypes`):**
+
+- `plone.richtext`: Provides a rich text field for the main body content.
+- `plone.leadimage`: Adds a "Lead Image" field, often displayed prominently.
+- `plone.collection`: Used by Collection content types to define query criteria.
+- `plone.tableofcontents`: Automatically generates a table of contents from headings within a rich text field.
+
+**General Behaviors (from `plone.app.dexterity`):**
+
+- `plone.basic`: Provides Dublin Core title and description fields. This should only be included if `plone.dublincore` is not included.
+- `plone.categorization`: Adds fields for tags (keywords) and language. This should only be included if `plone.dublincore` is not included.
+- `plone.publication`: Manages publication-related fields: effective and expiration dates. This should only be included if `plone.dublincore` is not included.
+- `plone.ownership`: Adds creator, contributor, and rights fields. This should only be included if `plone.dublincore` is not included.
+- `plone.dublincore`: This behavior includes `plone.basic`, `plone.categorization`, and `plone.ownership`. Usually, and if the user does not say anything, this behavior should be included.
+- `plone.shortname`: Gives the ability to rename an item from its edit form.
+- `plone.namefromtitle`: Automatically generate short URL name for content based on its initial title
+
+** Some other interesting behaviors **:
+
+- `plone.versioning`: from `plone.app.versioningbehavior` that adds versioning support using Products.CMFEditions.
+- `plone.relateditems`: from `plone.app.relationfield` that adds a field to relate other contents to the current content.
+- `plone.locking`: from `plone.app.lockingbehavior` that provides support to lock the editing of the current content.
+
+**Event specific behaviors (from `plone.app.event`)**: These behaviors are usually provided for Event like content-types, but they contain usefull fields, useful in other scenarios too:
+
+- `plone.eventbasic`: Basic Event schema: `start`, `end`, `whole_day` and `open_end` fields.
+- `plone.eventrecurrence`: Recurrence configuration extension for Events.
+- `plone.eventlocation`: Location extension for Events: `location` field.
+- `plone.eventattendees`: Attendees extension for Events: `attendees` field.
+- `plone.eventcontact`: Contact extension for Events: `contact_name`, `contact_email`, `contact_phone` and `event_url` fields.
+
+**Important Note on Default Behaviors:**
+Always inspect the `.xml` file generated for your new content type after running `uvx plonecli add -b ../mrbob.ini content_type`. This file, typically found in `src/my.package/my/package/profiles/default/types/MyType.xml`, will list the behaviors that are automatically included by the template. This ensures you avoid duplicating fields or functionality when adding new behaviors based on user requests.
+
+When a user asks for a field, consider if an existing behavior already provides that functionality before defining a new schema field.
 
 ### 2. using plone.api
 
@@ -89,7 +131,7 @@ Use `plone.api` for all standard operations. It is the canonical API for Plone.
 
 ## Classic UI Guidelines (Diazo)
 
-*Use this when developing themes for Plone Classic UI (non-Volto).*
+_Use this when developing themes for Plone Classic UI (non-Volto)._
 
 Diazo maps a static HTML theme to dynamic Plone content using `rules.xml`.
 
@@ -214,6 +256,8 @@ properties: {
 
 To start a new Plone 6 project with Volto, use **Cookieplone**.
 
+**Interactive Method:**
+
 - Run `uvx cookieplone` in your terminal.
 - **This is an interactive tool.** You will be prompted to provide:
   - **Template**: Choose "Plone 6 (Volto)".
@@ -223,10 +267,35 @@ To start a new Plone 6 project with Volto, use **Cookieplone**.
   - **Docker Support**: "Yes" is recommended for deployment.
 - Once finished, it scaffolds the backend and frontend.
 
+**Automated Method (Preferred):**
+
+You can pass parameters directly to `cookiecutter-plone` using the `--no-input` flag and `--extra-context` arguments to avoid interactive prompts. This is useful for scripting and automation.
+
+Here's an example:
+
+```bash
+uvx cookieplone \
+  --no-input \
+  --extra-context project_title="My Awesome Plone Project" \
+  --extra-context project_slug="my-awesome-plone-project" \
+  --extra-context description="A new Plone 6 project generated automatically." \
+  --extra-context author="AI Assistant" \
+  --extra-context email="ai@example.com" \
+  --extra-context language_code="en" \
+  --extra-context container_registry="GitHub" \
+  --extra-context devops_cache="1" \
+  --extra-context devops_ansible="1" \
+  --extra-context devops_gha_deploy="1"
+```
+
+Refer to the `cookiecutter.json` file of the `cookiecutter-plone-starter` template (usually located in `~/.cookiecutters/cookiecutter-plone-starter/cookiecutter.json`) for a full list of available parameters and their default values. The `__prompts__` section in `cookiecutter.json` provides user-friendly descriptions of the variables.
+
 ### Creating an Add-on Package
+
 **MANDATORY**: Use `plonecli` (which wraps `mr.bob`) to generate the boilerplate.
 
 **Automated Method (Preferred)**:
+
 1.  **Create `mrbob.ini`**:
     ```ini
     [variables]
@@ -240,13 +309,15 @@ To start a new Plone 6 project with Volto, use **Cookieplone**.
     vscode_support = n
     ```
 2.  **Run Command**:
-    - `uvx plonecli create -b mrbob.ini addon my.addon`
+    - `uvx plonecli add -b ../mrbob.ini addon my.addon`
 3.  **Cleanup**: Delete `mrbob.ini`.
 
 ### Creating a New Content Type
+
 **MANDATORY**: Use `plonecli` to generate the boilerplate.
 
 **Automated Method**:
+
 1.  **Create `mrbob.ini`**:
     ```ini
     [variables]
@@ -261,13 +332,15 @@ To start a new Plone 6 project with Volto, use **Cookieplone**.
     dexterity_type_activate_default_behaviors = y
     ```
 2.  **Run Command**:
-    - `uvx plonecli add content_type -b mrbob.ini`
+    - `uvx plonecli add -b ../mrbob.ini content_type`
 3.  **Cleanup**: Delete `mrbob.ini`.
 
 ### Creating a Custom API Endpoint
+
 **MANDATORY**: Use `plonecli` to generate the boilerplate.
 
 **Automated Method**:
+
 1.  **Create `mrbob.ini`**:
     ```ini
     [variables]
@@ -275,13 +348,15 @@ To start a new Plone 6 project with Volto, use **Cookieplone**.
     service_name = my-service
     ```
 2.  **Run Command**:
-    - `uvx plonecli add restapi_service -b mrbob.ini`
+    - `uvx plonecli add -b ../mrbob.ini restapi_service`
 3.  **Cleanup**: Delete `mrbob.ini`.
 
 ### Creating a Behavior
+
 **MANDATORY**: Use `plonecli` to generate the boilerplate.
 
 **Automated Method**:
+
 1.  **Create `mrbob.ini`**:
     ```ini
     [variables]
@@ -289,97 +364,111 @@ To start a new Plone 6 project with Volto, use **Cookieplone**.
     behavior_description = Description of the behavior
     ```
 2.  **Run Command**:
-    - `uvx plonecli add behavior -b mrbob.ini`
+    - `uvx plonecli add -b ../mrbob.ini behavior`
 3.  **Cleanup**: Delete `mrbob.ini`.
 
 ### Creating a Control Panel
+
 **MANDATORY**: Use `plonecli` to generate the boilerplate.
 
 **Automated Method**:
+
 1.  **Create `mrbob.ini`**:
     ```ini
     [variables]
     controlpanel_python_class_name = MyControlPanel
     ```
 2.  **Run Command**:
-    - `uvx plonecli add controlpanel -b mrbob.ini`
+    - `uvx plonecli add -b ../mrbob.ini controlpanel`
 3.  **Cleanup**: Delete `mrbob.ini`.
 
 ### Creating a Form
+
 **MANDATORY**: Use `plonecli` to generate the boilerplate.
 
 **Automated Method**:
+
 1.  **Create `mrbob.ini`**:
     ```ini
     [variables]
     form_name = MyForm
     form_title = My Form
     ```
-    *(Note: Check `bobtemplates.plone` source if uncertain about variable names, as they change occasionally).*
+    _(Note: Check `bobtemplates.plone` source if uncertain about variable names, as they change occasionally)._
 2.  **Run Command**:
-    - `uvx plonecli add form -b mrbob.ini`
+    - `uvx plonecli add -b ../mrbob.ini form`
 3.  **Cleanup**: Delete `mrbob.ini`.
 
 ### Creating an Indexer
+
 **MANDATORY**: Use `plonecli` to generate the boilerplate.
 
 **Automated Method**:
+
 1.  **Create `mrbob.ini`**:
     ```ini
     [variables]
     indexer_name = my_index
     ```
 2.  **Run Command**:
-    - `uvx plonecli add indexer -b mrbob.ini`
+    - `uvx plonecli add -b ../mrbob.ini indexer`
 3.  **Cleanup**: Delete `mrbob.ini`.
 
 ### Creating a Subscriber
+
 **MANDATORY**: Use `plonecli` to generate the boilerplate.
 
 **Automated Method**:
+
 1.  **Create `mrbob.ini`**:
     ```ini
     [variables]
     subscriber_handler_name = my_handler
     ```
-    *Note: The template creates a subscriber for `IObjectModifiedEvent` on `IDexterityContent`. Edit `configure.zcml` manually to change the event or interface.*
+    _Note: The template creates a subscriber for `IObjectModifiedEvent` on `IDexterityContent`. Edit `configure.zcml` manually to change the event or interface._
 2.  **Run Command**:
-    - `uvx plonecli add subscriber -b mrbob.ini`
+    - `uvx plonecli add -b ../mrbob.ini subscriber`
 3.  **Cleanup**: Delete `mrbob.ini`.
 
 ### Creating an Upgrade Step
+
 **MANDATORY**: Use `plonecli` to generate the boilerplate.
 
 **Automated Method**:
+
 1.  **Create `mrbob.ini`**:
     ```ini
     [variables]
     upgrade_step_title = Upgrade to new version
     upgrade_step_description = Description of what this step does
     ```
-    *Note: Source and destination versions are automatically calculated from `metadata.xml`.*
+    _Note: Source and destination versions are automatically calculated from `metadata.xml`._
 2.  **Run Command**:
-    - `uvx plonecli add upgrade_step -b mrbob.ini`
+    - `uvx plonecli add -b ../mrbob.ini upgrade_step`
 3.  **Cleanup**: Delete `mrbob.ini`.
 
 ### Creating a Vocabulary
+
 **MANDATORY**: Use `plonecli` to generate the boilerplate.
 
 **Automated Method**:
+
 1.  **Create `mrbob.ini`**:
     ```ini
     [variables]
     vocabulary_name = MyVocabulary
     ```
 2.  **Run Command**:
-    - `uvx plonecli add vocabulary -b mrbob.ini`
+    - `uvx plonecli add -b ../mrbob.ini vocabulary`
 3.  **Cleanup**: Delete `mrbob.ini`.
 
 ### Creating Classic UI Elements (Views, Viewlets, Portlets, Themes)
+
 **MANDATORY**: Use `plonecli` to generate the boilerplate. Do not manually create files.
-*Note: These are for Plone Classic UI and are generally not used in a Volto-only project.*
+_Note: These are for Plone Classic UI and are generally not used in a Volto-only project._
 
 **Automated Method - View**:
+
 1.  **Create `mrbob.ini`**:
     ```ini
     [variables]
@@ -392,10 +481,11 @@ To start a new Plone 6 project with Volto, use **Cookieplone**.
     view_register_for = *
     ```
 2.  **Run Command**:
-    - `uvx plonecli add view -b mrbob.ini`
+    - `uvx plonecli add -b ../mrbob.ini view`
 3.  **Cleanup**: Delete `mrbob.ini`.
 
 **Automated Method - Viewlet**:
+
 1.  **Create `mrbob.ini`**:
     ```ini
     [variables]
@@ -405,27 +495,29 @@ To start a new Plone 6 project with Volto, use **Cookieplone**.
     viewlet_template_name = viewlet
     ```
 2.  **Run Command**:
-    - `uvx plonecli add viewlet -b mrbob.ini`
+    - `uvx plonecli add -b ../mrbob.ini viewlet`
 3.  **Cleanup**: Delete `mrbob.ini`.
 
 **Automated Method - Portlet**:
+
 1.  **Create `mrbob.ini`**:
     ```ini
     [variables]
     portlet_name = Weather
     ```
 2.  **Run Command**:
-    - `uvx plonecli add portlet -b mrbob.ini`
+    - `uvx plonecli add -b ../mrbob.ini portlet`
 3.  **Cleanup**: Delete `mrbob.ini`.
 
 **Automated Method - Theme**:
+
 1.  **Create `mrbob.ini`**:
     ```ini
     [variables]
     theme.name = My Theme
     ```
 2.  **Run Command**:
-    - `uvx plonecli add theme -b mrbob.ini`
+    - `uvx plonecli add -b ../mrbob.ini theme`
     - Or for specific starting points: `theme_barceloneta`, `theme_basic`.
 3.  **Cleanup**: Delete `mrbob.ini`.
 
@@ -434,73 +526,81 @@ To start a new Plone 6 project with Volto, use **Cookieplone**.
 ### Volto Block Development Patterns
 
 #### 1. Custom Block (View, Edit & Schema)
+
 The standard way to create a fully custom block.
+
 - **View (`View.jsx`)**: Renders the block content. Receives `data` props.
 - **Edit (`Edit.jsx`)**: Renders the `SidebarPortal` with `BlockDataForm` to edit settings.
 - **Schema (`schema.js`)**: JSON schema defining the fields.
 - **Registration**:
-    ```javascript
-    config.blocks.blocksConfig.myBlock = {
-        id: 'myBlock',
-        title: 'My Block',
-        icon: icon,
-        group: 'common',
-        view: MyBlockView,
-        edit: MyBlockEdit,
-        restricted: false,
-        mostUsed: false,
-        sidebarTab: 1,
-    };
-    ```
+  ```javascript
+  config.blocks.blocksConfig.myBlock = {
+    id: 'myBlock',
+    title: 'My Block',
+    icon: icon,
+    group: 'common',
+    view: MyBlockView,
+    edit: MyBlockEdit,
+    restricted: false,
+    mostUsed: false,
+    sidebarTab: 1,
+  };
+  ```
 
 #### 2. Block Variations
+
 Use variations to provide multiple templates for the same block (e.g., a Listing block that displays as a List or a Grid).
+
 - **Create View**: Create a React component for the variation (e.g., `CardView.jsx`).
 - **Register**:
-    ```javascript
-    config.blocks.blocksConfig.listing.variations = [
-        ...config.blocks.blocksConfig.listing.variations,
-        {
-            id: 'cards',
-            isDefault: false,
-            title: 'Cards',
-            template: CardView,
-        },
-    ];
-    ```
+  ```javascript
+  config.blocks.blocksConfig.listing.variations = [
+    ...config.blocks.blocksConfig.listing.variations,
+    {
+      id: 'cards',
+      isDefault: false,
+      title: 'Cards',
+      template: CardView,
+    },
+  ];
+  ```
 
 #### 3. Schema Enhancers
+
 Use Schema Enhancers to dynamically modify a block's schema. This is useful when a Variation requires extra fields (e.g., "Number of Columns" for a Grid variation).
+
 - **Enhancer Function**:
-    ```javascript
-    const enhanceSchema = ({ schema, formData, intl }) => {
-        if (formData.variation === 'cards') {
-            // Add a new field
-            schema.properties.columns = {
-                title: 'Columns',
-                type: 'number',
-            };
-            schema.fieldsets[0].fields.push('columns');
-        }
-        return schema;
-    };
-    ```
+  ```javascript
+  const enhanceSchema = ({ schema, formData, intl }) => {
+    if (formData.variation === 'cards') {
+      // Add a new field
+      schema.properties.columns = {
+        title: 'Columns',
+        type: 'number',
+      };
+      schema.fieldsets[0].fields.push('columns');
+    }
+    return schema;
+  };
+  ```
 - **Register**:
-    ```javascript
-    config.blocks.blocksConfig.listing.schemaEnhancer = enhanceSchema;
-    ```
-    *Note: You can also compose multiple enhancers.*
+  ```javascript
+  config.blocks.blocksConfig.listing.schemaEnhancer = enhanceSchema;
+  ```
+  _Note: You can also compose multiple enhancers._
 
 #### 4. Custom Schema and View (Simple)
+
 If you don't need a custom `Edit` component (because the default block editor is sufficient and you only have simple fields), you can omit `edit` in the config. Volto will generate a default editor based on your schema.
+
 - **Requirements**: A `View` component and a `blockSchema`.
 - **Registration**:
-    ```javascript
-    config.blocks.blocksConfig.simpleBlock = {
-        id: 'simpleBlock',
-        title: 'Simple Block',
-        view: SimpleView,
-        blockSchema: simpleSchema, 
-        // No 'edit' key needed; Volto uses DefaultEditBlockData
-    };
-    ```
+  ```javascript
+  config.blocks.blocksConfig.simpleBlock = {
+    id: 'simpleBlock',
+    title: 'Simple Block',
+    view: SimpleView,
+    blockSchema: simpleSchema,
+    // No 'edit' key needed; Volto uses DefaultEditBlockData
+  };
+  ```
