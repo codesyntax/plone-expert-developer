@@ -7,7 +7,7 @@ description: Expert Plone 6 and Volto development guidance. Covers backend (Pyth
 
 You are an expert Plone 6 and Volto developer. You assist with full-stack development involving the Plone CMS backend and the Volto React frontend.
 
-## When to use
+## When to Use
 
 Use this skill when the user asks about:
 
@@ -18,120 +18,506 @@ Use this skill when the user asks about:
 - Developing Volto blocks, widgets, or themes.
 - Deployment of Plone/Volto stacks.
 
-## Core Principles
+## Hard Rules
 
-- **Plone 6 is the standard**: Assume Plone 6+ with Python 3.x.
-- **Volto First**: Default to Volto (React) for the frontend unless specified otherwise (Classic UI).
-- **Use Generators**: Always use `plonecli` (or `make add`) to create backend components (content types, behaviors, services, etc.). **Manual creation of these files is forbidden** as it leads to registration errors.
-- **Best Practices**: Follow community standards (plone.api, black, flake8, prettier, eslint).
+These rules apply to every task. Never violate them.
 
-## Backend Guidelines (Python/Plone)
+1. **Plone 6 only** — Assume Plone 6+ with Python 3.x.
+2. **Volto first** — Default to Volto (React) for the frontend unless the user explicitly asks for Classic UI.
+3. **Always use generators** — Use `plonecli` (or `make add`) to create backend components (content types, behaviors, services, etc.). Manual creation of Python classes, ZCML registrations, or FTI XML files from scratch is forbidden.
+4. **Always use the automated method** — Use `mrbob.ini` files with plonecli to avoid interactive prompts. This ensures reproducibility and agent autonomy.
+5. **Use `uvx cookieplone` for new projects** — Never use pip or zc.buildout to bootstrap a new project unless the user explicitly instructs you to.
+6. **Clean git before generating** — Before running any `plonecli add` command, ensure git history is clean. If there are uncommitted changes, commit them first.
+7. **Use `plone.api`** — It is the canonical API for Plone. Use it for all standard operations.
+8. **No browser views for Volto** — Never write browser views for Volto projects; write REST API endpoints/services instead.
+9. **Follow community standards** — Use `plone.api`, black, flake8, prettier, eslint.
+10. **Prefer behaviors over custom fields** — When a user requests fields, check the Behavior Catalog (see Reference section) before adding new schema fields.
 
-### 0. Generator Usage (Strict)
+## Decision Tree
 
-- If asked to create a project **always use `uvx cookieplone` to do so**. Be sure to know whether you need to create a Volto project or Classic UI project. If in doubt or no instructions are given to you, default to Volto project. Check the "Creating a New Project" section below to learn how to automate the creation of the project instead of going the interactive way:
-  - `uvx cookieplone project` for Volto projects
-  - `uvx cookieplone classic_project` for Classic UI project.
-- **Always use `plonecli`** to generate boilerplate code.
-- **Never** manually create Python classes, ZCML registrations, or FTI XML files from scratch.
-- Use the **Automated Method** (`mrbob.ini`) whenever possible to ensure reproducibility and agent autonomy.
-- \*\*Never use pip or zc.buildout to bootstrap a new project if you are not instructed to do so explicitely.
+Use this routing logic to determine the correct approach for each task.
 
-### 1. Content Types (Dexterity)
+### New project or new add-on?
 
-- Prefer **Python schemas** (plone.supermodel) over XML models.
-- Use `plone.api` for all high-level interactions (create, get, search, etc.).
-- Isolate business logic in **Behaviors** or **Adapters**.
+- **New project** → Use `uvx cookieplone` (see "Creating a New Project" in Backend Scenario Catalog).
+  - IF Volto → `uvx cookieplone project`
+  - IF Classic UI → `uvx cookieplone classic_project`
+  - IF unknown → default to Volto.
+- **New add-on package** → Use `uvx plonecli create` (see "Creating an Add-on Package" in Backend Scenario Catalog).
 
-When creating a content type based on user input and they request specific fields, prioritize using existing Plone behaviors over adding new fields directly to the content type's schema. Behaviors are reusable components that add fields and functionality to content types.
+### Content type: Container or Item?
 
-Here are some of the most commonly used and important behaviors provided by Plone, which you can activate in your content type's XML definition (e.g., in `profiles/default/types/MyType.xml`):
+- **Container** — Can hold child objects (folders, sections). Set `dexterity_type_base_class = Container`.
+- **Item** — Leaf content, no children. Set `dexterity_type_base_class = Item`.
+- IF the user doesn't specify → default to `Container`.
 
-**Common Behaviors for Content (from `plone.app.contenttypes`):**
+### Content type: Supermodel or not?
 
-- `plone.richtext`: Provides a rich text field for the main body content.
-- `plone.leadimage`: Adds a "Lead Image" field, often displayed prominently.
-- `plone.collection`: Used by Collection content types to define query criteria.
-- `plone.tableofcontents`: Automatically generates a table of contents from headings within a rich text field.
+- `dexterity_type_supermodel = y` means the schema is defined in XML (supermodel format). Use this when you need XML-based schema definitions.
+- `dexterity_type_supermodel = n` means the schema is defined in Python. This is the default and preferred approach for most cases.
+- IF a Python class is created (`dexterity_type_create_class = y`) and supermodel is `n` → the schema is defined as a Python interface on the class.
 
-**General Behaviors (from `plone.app.dexterity`):**
+### Frontend: Volto or Classic UI?
 
-- `plone.basic`: Provides Dublin Core title and description fields. This should only be included if `plone.dublincore` is not included.
-- `plone.categorization`: Adds fields for tags (keywords) and language. This should only be included if `plone.dublincore` is not included.
-- `plone.publication`: Manages publication-related fields: effective and expiration dates. This should only be included if `plone.dublincore` is not included.
-- `plone.ownership`: Adds creator, contributor, and rights fields. This should only be included if `plone.dublincore` is not included.
-- `plone.dublincore`: This behavior includes `plone.basic`, `plone.categorization`, and `plone.ownership`. Usually, and if the user does not say anything, this behavior should be included.
-- `plone.shortname`: Gives the ability to rename an item from its edit form.
-- `plone.namefromtitle`: Automatically generate short URL name for content based on its initial title
-- `plone.namefromfilename`: Automatically generate short URL name for content based on its primary field file name (this is enabled by default in the default provided `File` and `Image` content-types.)
+- **Volto** → React components, Volto blocks, `plone.restapi` endpoints. See Frontend Scenario Catalog and Frontend Guidelines.
+- **Classic UI** → Diazo themes, browser views, viewlets, portlets. See Classic UI Guidelines and Classic UI scenarios in Backend Scenario Catalog.
 
-** Some other interesting behaviors **:
+### Does an existing behavior cover the requested field?
 
-- `plone.versioning`: from `plone.app.versioningbehavior` that adds versioning support using Products.CMFEditions.
-- `plone.relateditems`: from `plone.app.relationfield` that adds a field to relate other contents to the current content.
-- `plone.locking`: from `plone.app.lockingbehavior` that provides support to lock the editing of the current content.
+- Check the Reference: Behavior Catalog section below.
+- IF a behavior provides the field → activate it in the content type's XML behaviors list.
+- IF no behavior matches → add a custom schema field.
 
-**Event specific behaviors (from `plone.app.event`)**: These behaviors are usually provided for Event like content-types, but they contain usefull fields, useful in other scenarios too:
+## Standard Generator Procedure
 
-- `plone.eventbasic`: Basic Event schema: `start`, `end`, `whole_day` and `open_end` fields.
-- `plone.eventrecurrence`: Recurrence configuration extension for Events.
-- `plone.eventlocation`: Location extension for Events: `location` field.
-- `plone.eventattendees`: Attendees extension for Events: `attendees` field.
-- `plone.eventcontact`: Contact extension for Events: `contact_name`, `contact_email`, `contact_phone` and `event_url` fields.
+All backend component generation follows this same 3-step procedure. Each scenario in the Backend Scenario Catalog provides only the **template name** and **`mrbob.ini` variables** — the procedure is always the same.
 
-**Important Note on Default Behaviors:**
-Always inspect the `.xml` file generated for your new content type after running `uvx plonecli add -b mrbob.ini content_type`. This file, typically found in `src/my.package/my/package/profiles/default/types/MyType.xml`, will list the behaviors that are automatically included by the template. This ensures you avoid duplicating fields or functionality when adding new behaviors based on user requests.
+### Procedure
 
-When a user asks for a field, consider if an existing behavior already provides that functionality before defining a new schema field.
+1. **Create `mrbob.ini`** in the directory where you will run the command.
+   - For `plonecli create`: the current working directory.
+   - For `plonecli add`: the directory containing `pyproject.toml` (usually the `backend` folder).
 
-### 2. using plone.api
+   ```ini
+   [variables]
+   # Variables specific to each scenario (see catalog below)
+   ```
 
-Use `plone.api` for all standard operations. It is the canonical API for Plone.
+2. **Run the command**:
+   - For new add-ons: `uvx plonecli create -b mrbob.ini addon <package.name>`
+   - For adding components: `uvx plonecli add -b mrbob.ini <template_name>`
 
-- **Content**:
-  - Create: `api.content.create(container=portal, type='Folder', title='My Folder')`
-  - Get: `api.content.get(path='/my-folder')` or `api.content.get(UID='...')`
-  - Search: `api.content.find(context=context, portal_type='Document')` (returns Catalog Brains)
-  - Manipulation: `api.content.move`, `api.content.rename`, `api.content.delete`, `api.content.transition`.
-- **Portal**:
-  - Get Portal: `api.portal.get()`
-  - Tools: `api.portal.get_tool('portal_catalog')`
-  - Messaging: `api.portal.show_message(message='Done', request=request)`
-  - Email: `api.portal.send_email(recipient='user@example.com', subject='Hello', body='Msg')`
-- **Users & Groups**:
-  - Users: `api.user.create`, `api.user.get_current`, `api.user.grant_roles`.
-  - Groups: `api.group.create`, `api.group.add_user`.
-- **Env**:
-  - `api.env.plone_version()`, `api.env.debug_mode()`.
+3. **Delete `mrbob.ini`** after the command completes.
 
-### 3. REST API
+## Backend Scenario Catalog
+
+Each scenario lists only the template name and the `mrbob.ini` variables. Follow the Standard Generator Procedure above for all of them.
+
+### Creating a New Project
+
+Use **Cookieplone** (not plonecli) for new projects.
+
+```bash
+uvx cookieplone \
+  --no-input \
+  --extra-context project_title="My Awesome Plone Project" \
+  --extra-context project_slug="my-awesome-plone-project" \
+  --extra-context description="A new Plone 6 project generated automatically." \
+  --extra-context author="AI Assistant" \
+  --extra-context email="ai@example.com" \
+  --extra-context language_code="en" \
+  --extra-context container_registry="GitHub" \
+  --extra-context devops_cache="1" \
+  --extra-context devops_ansible="1" \
+  --extra-context devops_gha_deploy="1"
+```
+
+For Classic UI: use `uvx cookieplone classic_project` with the same flags.
+
+Refer to `cookiecutter.json` in `~/.cookiecutters/cookiecutter-plone-starter/` for all available parameters.
+
+### Creating an Add-on Package
+
+**Template**: `addon` | **Command**: `uvx plonecli create -b mrbob.ini addon my.addon`
+
+```ini
+[variables]
+author.name = Plone Developer
+author.email = dev@plone.org
+author.github.user = plone
+package.description = An add-on for Plone
+package.git.init = n
+plone.version = 6.0.0
+python.version = python3
+vscode_support = n
+```
+
+### Creating a Content Type
+
+**Template**: `content_type` | **Command**: `uvx plonecli add -b mrbob.ini content_type`
+
+```ini
+[variables]
+dexterity_type_name = My Type
+dexterity_type_desc = Description of the type
+dexterity_type_icon_expr = puzzle
+dexterity_type_supermodel = n
+dexterity_type_base_class = Container
+dexterity_type_global_allow = y
+dexterity_type_filter_content_types = n
+dexterity_type_create_class = y
+dexterity_type_activate_default_behaviors = y
+# dexterity_parent_container_type_name = MyFolder  # only if global_allow = n
+```
+
+After generation, inspect `profiles/default/types/MyType.xml` to see which behaviors were auto-included before adding more.
+
+### Creating a REST API Endpoint
+
+**Template**: `restapi_service` | **Command**: `uvx plonecli add -b mrbob.ini restapi_service`
+
+```ini
+[variables]
+service_class_name = MyService
+# service_name = my-service  # defaults to normalized class name
+```
+
+### Creating a Behavior
+
+**Template**: `behavior` | **Command**: `uvx plonecli add -b mrbob.ini behavior`
+
+```ini
+[variables]
+behavior_name = MyBehavior
+behavior_description = Description of the behavior
+```
+
+### Creating a Control Panel
+
+**Template**: `controlpanel` | **Command**: `uvx plonecli add -b mrbob.ini controlpanel`
+
+```ini
+[variables]
+controlpanel_python_class_name = MyControlPanel
+```
+
+### Creating a Form
+
+**Template**: `form` | **Command**: `uvx plonecli add -b mrbob.ini form`
+
+```ini
+[variables]
+form_python_class_name = MyForm
+form_title = My Form
+# form_name = my-form              # defaults to normalized class name
+# form_register_for = IPloneSiteRoot
+# form_permission = cmf.ManagePortal
+```
+
+### Creating an Indexer
+
+**Template**: `indexer` | **Command**: `uvx plonecli add -b mrbob.ini indexer`
+
+```ini
+[variables]
+indexer_name = my_index
+```
+
+### Creating a Subscriber
+
+**Template**: `subscriber` | **Command**: `uvx plonecli add -b mrbob.ini subscriber`
+
+```ini
+[variables]
+subscriber_handler_name = my_handler
+```
+
+The template creates a subscriber for `IObjectModifiedEvent` on `IDexterityContent`. Edit `configure.zcml` manually to change the event or interface.
+
+### Creating an Upgrade Step
+
+**Template**: `upgrade_step` | **Command**: `uvx plonecli add -b mrbob.ini upgrade_step`
+
+```ini
+[variables]
+upgrade_step_title = Upgrade to new version
+upgrade_step_description = Description of what this step does
+```
+
+Source and destination versions are automatically calculated from `metadata.xml`.
+
+### Creating a Vocabulary
+
+**Template**: `vocabulary` | **Command**: `uvx plonecli add -b mrbob.ini vocabulary`
+
+```ini
+[variables]
+vocabulary_name = MyVocabulary
+# is_static_catalog_vocab = n
+```
+
+### Creating Classic UI Elements
+
+These are for Plone Classic UI only. Not used in Volto projects.
+
+**View** — Template: `view`
+
+```ini
+[variables]
+view_python_class = y
+view_python_class_name = MyView
+view_base_class = BrowserView
+view_name = my-view
+view_template = y
+view_template_name = my_view
+view_register_for = *
+# view_permission = zope2.View
+```
+
+**Viewlet** — Template: `viewlet`
+
+```ini
+[variables]
+viewlet_python_class_name = MyViewlet
+viewlet_name = myviewlet
+viewlet_template = y
+viewlet_template_name = viewlet
+```
+
+The `for` attribute defaults to `plone.app.contenttypes.interfaces.IDocument`, `manager` to `plone.app.layout.viewlets.interfaces.IAboveContentTitle`, `permission` to `zope2.View`. Edit `configure.zcml` to change these.
+
+**Portlet** — Template: `portlet`
+
+```ini
+[variables]
+portlet_name = Weather
+```
+
+The template derives internal names from `portlet_name`. Edit generated files to customize the description or interface.
+
+**Theme** — Template: `theme` (or `theme_barceloneta`, `theme_basic`)
+
+```ini
+[variables]
+theme.name = My Theme
+```
+
+The theme variant (`theme`, `theme_barceloneta`, `theme_basic`) is chosen at the command level, not in `mrbob.ini`.
+
+## Frontend Scenario Catalog
+
+### Creating a Volto Add-on
+
+Volto add-ons encapsulate reusable frontend functionality. Generate a new add-on with:
+
+```bash
+npm init yo @plone/generator-volto my-volto-addon
+```
+
+Or within an existing Volto project, use the `packages` directory convention:
+
+1. Create the add-on directory under `packages/my-addon/`.
+2. Add `src/index.js` as the entry point exporting `applyConfig`:
+   ```javascript
+   const applyConfig = (config) => {
+     // Register blocks, customizations, etc.
+     return config;
+   };
+   export default applyConfig;
+   ```
+3. Register the add-on in `package.json` under `"addons"` and in `volto.config.js`.
+
+### Creating a Custom Volto Block
+
+A block consists of: **View** component, **Edit** component (optional), **schema**, and **icon**.
+
+1. Create the block directory (e.g., `src/components/Blocks/MyBlock/`).
+2. Create the files:
+
+   **`schema.js`** — Defines the block's editable fields:
+   ```javascript
+   export const myBlockSchema = ({ intl }) => ({
+     title: 'My Block',
+     fieldsets: [
+       {
+         id: 'default',
+         title: 'Default',
+         fields: ['title', 'description'],
+       },
+     ],
+     properties: {
+       title: { title: 'Title', widget: 'text' },
+       description: { title: 'Description', widget: 'textarea' },
+     },
+     required: [],
+   });
+   ```
+
+   **`View.jsx`** — Renders the block on the page:
+   ```jsx
+   const MyBlockView = ({ data }) => (
+     <div className="my-block">
+       <h2>{data.title}</h2>
+       <p>{data.description}</p>
+     </div>
+   );
+   export default MyBlockView;
+   ```
+
+   **`Edit.jsx`** — (Optional) Custom edit interface with sidebar:
+   ```jsx
+   import { SidebarPortal, BlockDataForm } from '@plone/volto/components';
+
+   const MyBlockEdit = (props) => {
+     const { data, block, onChangeBlock, selected } = props;
+     const schema = myBlockSchema({ intl: props.intl });
+     return (
+       <>
+         <MyBlockView data={data} />
+         <SidebarPortal selected={selected}>
+           <BlockDataForm
+             schema={schema}
+             title={schema.title}
+             onChangeField={(id, value) =>
+               onChangeBlock(block, { ...data, [id]: value })
+             }
+             formData={data}
+           />
+         </SidebarPortal>
+       </>
+     );
+   };
+   export default MyBlockEdit;
+   ```
+
+3. Register in `index.js` (your add-on's `applyConfig`):
+   ```javascript
+   import MyBlockView from './components/Blocks/MyBlock/View';
+   import MyBlockEdit from './components/Blocks/MyBlock/Edit';
+   import icon from '@plone/volto/icons/block.svg';
+
+   const applyConfig = (config) => {
+     config.blocks.blocksConfig.myBlock = {
+       id: 'myBlock',
+       title: 'My Block',
+       icon: icon,
+       group: 'common',
+       view: MyBlockView,
+       edit: MyBlockEdit,
+       restricted: false,
+       mostUsed: false,
+       sidebarTab: 1,
+     };
+     return config;
+   };
+   ```
+
+If you don't need a custom Edit component, omit `edit` and use `blockSchema` instead — Volto generates a default editor:
+```javascript
+config.blocks.blocksConfig.simpleBlock = {
+  id: 'simpleBlock',
+  title: 'Simple Block',
+  view: SimpleView,
+  blockSchema: simpleSchema,
+};
+```
+
+### Adding Block Variations
+
+Variations provide multiple display templates for the same block (e.g., a Listing block as list or grid).
+
+1. Create a view component for the variation (e.g., `CardView.jsx`).
+2. Register:
+   ```javascript
+   config.blocks.blocksConfig.listing.variations = [
+     ...config.blocks.blocksConfig.listing.variations,
+     {
+       id: 'cards',
+       isDefault: false,
+       title: 'Cards',
+       template: CardView,
+     },
+   ];
+   ```
+
+### Using Schema Enhancers
+
+Schema Enhancers dynamically modify a block's schema based on state (e.g., add fields when a specific variation is selected).
+
+```javascript
+const enhanceSchema = ({ schema, formData, intl }) => {
+  if (formData.variation === 'cards') {
+    schema.properties.columns = {
+      title: 'Columns',
+      type: 'number',
+    };
+    schema.fieldsets[0].fields.push('columns');
+  }
+  return schema;
+};
+
+// Register:
+config.blocks.blocksConfig.listing.schemaEnhancer = enhanceSchema;
+```
+
+You can compose multiple enhancers.
+
+### Customizing Existing Components (Shadowing)
+
+Override core Volto components by mirroring their path under `src/customizations/`:
+
+- To customize `@plone/volto/components/theme/Header/Header.jsx`:
+  - Create `src/customizations/volto/components/theme/Header/Header.jsx`.
+- The customized file completely replaces the original at build time.
+
+## Backend Guidelines
+
+### Using plone.api
+
+Use `plone.api` for all standard operations:
+
+- **Content**: `api.content.create`, `api.content.get`, `api.content.find` (returns Catalog Brains), `api.content.move`, `api.content.rename`, `api.content.delete`, `api.content.transition`.
+- **Portal**: `api.portal.get()`, `api.portal.get_tool('portal_catalog')`, `api.portal.show_message(...)`, `api.portal.send_email(...)`.
+- **Users & Groups**: `api.user.create`, `api.user.get_current`, `api.user.grant_roles`, `api.group.create`, `api.group.add_user`.
+- **Env**: `api.env.plone_version()`, `api.env.debug_mode()`.
+
+### REST API Services
 
 - Extend functionalities via `plone.restapi` services.
-- Never write browser views for Volto; write API endpoints/services.
 - Pattern: Service Class + `configure.zcml` registration + `services` directory.
+- Never write browser views for Volto projects.
 
-### 4. Database & ZCA
+### Database & ZCA
 
 - Interact with ZODB via `plone.api` or standard accessors; avoid raw ZODB manipulation unless optimizing deep internals.
 - Keep ZCML clean. Use `include package=".subpackage"` to organize large projects.
 
-## Frontend Guidelines (Volto/React)
+### Project Structure
 
-### 1. Architecture
+- **Backend**: Standard Python package structure (`src/my.package`).
+- **Frontend**: Standard Volto project (`/frontend` or separate repo).
 
-- **Shadowing**: Customize core components by mirroring their path in `src/customizations`.
-- **Add-ons**: Encapsulate reusable logic in Volto add-ons.
+## Frontend Guidelines
 
-### 2. Components
+### Architecture
+
+- **Shadowing**: Customize core components by mirroring their path in `src/customizations/`.
+- **Add-ons**: Encapsulate reusable logic in Volto add-ons. Each add-on exports `applyConfig`.
+- **Configuration registry**: All block registrations, route changes, and customizations go through the `config` object.
+
+### Components
 
 - Use **Functional Components** and **Hooks**.
 - Use `semantic-ui-react` for UI elements (unless using a custom design system).
 - Styling: Use CSS Modules or LESS/SCSS as per project setup.
 
-### 3. Blocks
+### File Organization
 
-- Creating custom blocks is the primary way to extend page layout capabilities.
-- A block consists of: `View` component, `Edit` component, `schema.js`, and `icon`.
+A typical Volto add-on or project layout:
+
+```
+src/
+  index.js              # applyConfig entry point
+  components/
+    Blocks/
+      MyBlock/
+        View.jsx
+        Edit.jsx
+        schema.js
+        index.js        # re-exports
+    Views/
+    Widgets/
+  customizations/       # shadowed components
+    volto/
+      components/
+```
+
+### Import Conventions
+
+- Import Volto components from `@plone/volto/components`.
+- Import helpers from `@plone/volto/helpers`.
+- Import icons from `@plone/volto/icons/<name>.svg`.
+- For content-related API calls, use Volto's built-in actions and reducers.
 
 ## Classic UI Guidelines (Diazo)
 
@@ -139,7 +525,7 @@ _Use this when developing themes for Plone Classic UI (non-Volto)._
 
 Diazo maps a static HTML theme to dynamic Plone content using `rules.xml`.
 
-### 1. Structure (rules.xml)
+### Structure (rules.xml)
 
 ```xml
 <rules
@@ -161,7 +547,7 @@ Diazo maps a static HTML theme to dynamic Plone content using `rules.xml`.
 </rules>
 ```
 
-### 2. Common Directives
+### Common Directives
 
 - `<theme>`: Specifies the static HTML file.
 - `<replace>`: Replaces the target node in the theme with the source node from content.
@@ -169,14 +555,39 @@ Diazo maps a static HTML theme to dynamic Plone content using `rules.xml`.
 - `<before>` / `<after>`: Inserts content before or after the target theme node.
 - `<merge>`: Merges attributes (e.g., class names) from content to theme.
 
-### 3. Conditions
+### Conditions
 
 Use conditions to apply rules only on specific pages.
 
 - `css:if-content="body.section-front-page"`: Only on front page.
 - `css:if-path="/news"`: Only on paths starting with /news.
 
-## Reference: Common Field Types & Widgets
+## Error Handling and Recovery
+
+### Generator failures
+
+- IF `plonecli add` fails with a template error → check that you are in the correct directory (the one containing `pyproject.toml`).
+- IF `plonecli add` produces unexpected output → verify `mrbob.ini` variable names match the template's expected variables. Check `bobtemplates.plone` source if uncertain.
+- IF the generated code has registration errors → check `configure.zcml` for duplicate or missing registrations.
+
+### Cookieplone failures
+
+- IF `uvx cookieplone` fails → verify the `--extra-context` parameter names match the template's `cookiecutter.json`.
+- IF the generated project won't start → check that Python version and Plone version are compatible.
+
+### Common ZCML issues
+
+- **Component not found**: Ensure the ZCML file is included from the package's top-level `configure.zcml`.
+- **Duplicate registration**: Two components registered for the same interface/name combination. Remove the duplicate.
+- **Missing dependency**: Add `<include package="..." />` for required packages.
+
+### Volto build errors
+
+- **Module not found**: Check import paths. Volto resolves `@plone/volto/` to its internal structure.
+- **Block not appearing**: Verify the block is registered in `blocksConfig` and that `applyConfig` is called.
+- **Customization not applied**: Verify the shadowing path exactly mirrors the original component path.
+
+## Reference: Field Types and Widgets
 
 ### Backend Fields (zope.schema)
 
@@ -249,456 +660,85 @@ properties: {
 }
 ```
 
-## Project Structure
+## Reference: Behavior Catalog
 
-- **Backend**: Standard python package structure (`src/my.package`).
-- **Frontend**: Standard Volto project (`/frontend` or separate repo).
+Behaviors are reusable components that add fields and functionality to content types. Activate them in the content type's XML definition (e.g., `profiles/default/types/MyType.xml`). When a user asks for a field, check here first before defining a new schema field.
 
-## Common Scenarios (How-To)
+### Common Behaviors (plone.app.contenttypes)
 
-### Creating a New Project
+- `plone.richtext`: Rich text field for main body content.
+- `plone.leadimage`: Lead Image field, often displayed prominently.
+- `plone.collection`: Query criteria for Collection content types.
+- `plone.tableofcontents`: Auto-generates table of contents from headings.
 
-To start a new Plone 6 project with Volto, use **Cookieplone**.
+### General Behaviors (plone.app.dexterity)
 
-**Interactive Method:**
+- `plone.basic`: Dublin Core title and description. Only include if `plone.dublincore` is not included.
+- `plone.categorization`: Tags (keywords) and language. Only include if `plone.dublincore` is not included.
+- `plone.publication`: Effective and expiration dates. Only include if `plone.dublincore` is not included.
+- `plone.ownership`: Creator, contributor, and rights fields. Only include if `plone.dublincore` is not included.
+- `plone.dublincore`: Includes `plone.basic`, `plone.categorization`, and `plone.ownership`. This is the default — include it unless the user specifies otherwise.
+- `plone.shortname`: Rename an item from its edit form.
+- `plone.namefromtitle`: Auto-generate URL slug from title.
+- `plone.namefromfilename`: Auto-generate URL slug from primary field file name (default for File and Image types).
 
-- Run `uvx cookieplone` in your terminal.
-- **This is an interactive tool.** You will be prompted to provide:
-  - **Template**: Choose "Plone 6 (Volto)".
-  - **Project Title & Slug**: Name your project.
-  - **Description, Author, Email**: Metadata.
-  - **Python Version**: Usually defaults to system Python or recommended version.
-  - **Docker Support**: "Yes" is recommended for deployment.
-- Once finished, it scaffolds the backend and frontend.
+### Additional Behaviors
 
-**Automated Method (Preferred):**
+- `plone.versioning` (from `plone.app.versioningbehavior`): Versioning support using CMFEditions.
+- `plone.relateditems` (from `plone.app.relationfield`): Related items field.
+- `plone.locking` (from `plone.app.lockingbehavior`): Content locking support.
 
-You can pass parameters directly to `cookiecutter-plone` using the `--no-input` flag and `--extra-context` arguments to avoid interactive prompts. This is useful for scripting and automation.
+### Event Behaviors (plone.app.event)
 
-Here's an example:
+These are designed for Event content types but contain useful fields for other scenarios too.
 
-```bash
-uvx cookieplone \
-  --no-input \
-  --extra-context project_title="My Awesome Plone Project" \
-  --extra-context project_slug="my-awesome-plone-project" \
-  --extra-context description="A new Plone 6 project generated automatically." \
-  --extra-context author="AI Assistant" \
-  --extra-context email="ai@example.com" \
-  --extra-context language_code="en" \
-  --extra-context container_registry="GitHub" \
-  --extra-context devops_cache="1" \
-  --extra-context devops_ansible="1" \
-  --extra-context devops_gha_deploy="1"
+- `plone.eventbasic`: `start`, `end`, `whole_day`, `open_end` fields.
+- `plone.eventrecurrence`: Recurrence configuration.
+- `plone.eventlocation`: `location` field.
+- `plone.eventattendees`: `attendees` field.
+- `plone.eventcontact`: `contact_name`, `contact_email`, `contact_phone`, `event_url` fields.
+
+### Important Note on Default Behaviors
+
+Always inspect the `.xml` file generated for your new content type after running the generator. The file (typically `profiles/default/types/MyType.xml`) lists auto-included behaviors. This prevents duplicating fields or functionality.
+
+## Reference: Volto Block Patterns
+
+### Pattern 1: Full Custom Block (View + Edit + Schema)
+
+See "Creating a Custom Volto Block" in the Frontend Scenario Catalog above for a complete example.
+
+Registration pattern:
+```javascript
+config.blocks.blocksConfig.myBlock = {
+  id: 'myBlock',
+  title: 'My Block',
+  icon: icon,
+  group: 'common',
+  view: MyBlockView,
+  edit: MyBlockEdit,
+  restricted: false,
+  mostUsed: false,
+  sidebarTab: 1,
+};
 ```
 
-Refer to the `cookiecutter.json` file of the `cookiecutter-plone-starter` template (usually located in `~/.cookiecutters/cookiecutter-plone-starter/cookiecutter.json`) for a full list of available parameters and their default values. The `__prompts__` section in `cookiecutter.json` provides user-friendly descriptions of the variables.
+### Pattern 2: Simple Block (View + Schema, no custom Edit)
 
-### Creating an Add-on Package
+Omit `edit` and use `blockSchema` — Volto generates a default editor:
+```javascript
+config.blocks.blocksConfig.simpleBlock = {
+  id: 'simpleBlock',
+  title: 'Simple Block',
+  view: SimpleView,
+  blockSchema: simpleSchema,
+};
+```
 
-**MANDATORY**: Use `plonecli` (which wraps `mr.bob`) to generate the boilerplate.
+### Pattern 3: Block Variations
 
-**Automated Method (Preferred)**:
+See "Adding Block Variations" in the Frontend Scenario Catalog above.
 
-*Note: Before running any `plonecli add` command, ensure your Git history is clean. If there are uncommitted changes, commit them **before** proceeding.*
+### Pattern 4: Schema Enhancers
 
-1.  **Create `mrbob.ini`**: Create this file in the current working directory where you intend to run `uvx plonecli create`.
-    ```ini
-    [variables]
-    author.name = Plone Developer
-    author.email = dev@plone.org
-    author.github.user = plone
-    package.description = An add-on for Plone
-    package.git.init = n
-    plone.version = 6.0.0
-    python.version = python3
-    vscode_support = n
-    ```
-2.  **Run Command**:
-    - `uvx plonecli create -b mrbob.ini addon my.addon`
-3.  **Cleanup**: Delete `mrbob.ini`.
-
-### Creating a New Content Type
-
-**MANDATORY**: Use `plonecli` to generate the boilerplate.
-
-**Automated Method**:
-
-*Note: Before running any `plonecli add` command, ensure your Git history is clean. If there are uncommitted changes, commit them **before** proceeding.*
-
-1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
-    *Note: The `plonecli add` command should be run from the directory where your `pyproject.toml` file is located, which is usually in the `backend` folder.*
-    ```ini
-    [variables]
-    # The human-readable name of the content type (e.g., "My Type"). Mandatory.
-    dexterity_type_name = My Type
-    # A brief description of the content type.
-    dexterity_type_desc = Description of the type
-    # The icon expression for the content type (e.g., "puzzle", "document").
-    dexterity_type_icon_expr = puzzle
-    # Whether to use a supermodel (y/n). If 'y', a base class is needed.
-    dexterity_type_supermodel = n
-    # The base class for the content type (e.g., "Container", "Item").
-    dexterity_type_base_class = Container
-    # Whether the content type can be created anywhere in the site (y/n).
-    dexterity_type_global_allow = y
-    # Whether to filter allowed content types within this container (y/n).
-    # This question is skipped if 'dexterity_type_base_class' is not "Container".
-    dexterity_type_filter_content_types = n
-    # Whether to create a Python class for the content type (y/n).
-    dexterity_type_create_class = y
-    # Whether to activate default behaviors for the content type (y/n).
-    dexterity_type_activate_default_behaviors = y
-    # The name of the parent container type if 'dexterity_type_global_allow' is 'n'.
-    # This question is skipped if 'dexterity_type_global_allow' is 'y'.
-    # dexterity_parent_container_type_name = MyFolder
-    ```
-2.  **Run Command**:
-    - `uvx plonecli add -b mrbob.ini content_type`
-3.  **Cleanup**: Delete `mrbob.ini`.
-
-### Creating a Custom API Endpoint
-
-**MANDATORY**: Use `plonecli` to generate the boilerplate.
-
-**Automated Method**:
-
-*Note: Before running any `plonecli add` command, ensure your Git history is clean. If there are uncommitted changes, commit them **before** proceeding.*
-
-1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
-    *Note: The `plonecli add` command should be run from the directory where your `pyproject.toml` file is located, which is usually in the `backend` folder.*
-    ```ini
-    [variables]
-    # The Python class name for your REST API service (e.g., "MyService"). Mandatory.
-    service_class_name = MyService
-    # The URL segment for the REST API service (e.g., "my-service").
-    # If 'service_class_name' is provided, this defaults to a normalized version of it.
-    # service_name = my-service
-    ```
-2.  **Run Command**:
-    - `uvx plonecli add -b mrbob.ini restapi_service`
-3.  **Cleanup**: Delete `mrbob.ini`.
-
-### Creating a Behavior
-
-**MANDATORY**: Use `plonecli` to generate the boilerplate.
-
-**Automated Method**:
-
-*Note: Before running any `plonecli add` command, ensure your Git history is clean. If there are uncommitted changes, commit them **before** proceeding.*
-
-1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
-    *Note: The `plonecli add` command should be run from the directory where your `pyproject.toml` file is located, which is usually in the `backend` folder.*
-    ```ini
-    [variables]
-    # The human-readable name of the behavior (e.g., "MyBehavior"). Mandatory.
-    behavior_name = MyBehavior
-    # A brief description of the behavior.
-    behavior_description = Description of the behavior
-    ```
-2.  **Run Command**:
-    - `uvx plonecli add -b mrbob.ini behavior`
-3.  **Cleanup**: Delete `mrbob.ini`.
-
-### Creating a Control Panel
-
-**MANDATORY**: Use `plonecli` to generate the boilerplate.
-
-**Automated Method**:
-
-*Note: Before running any `plonecli add` command, ensure your Git history is clean. If there are uncommitted changes, commit them **before** proceeding.*
-
-1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
-    *Note: The `plonecli add` command should be run from the directory where your `pyproject.toml` file is located, which is usually in the `backend` folder.*
-    ```ini
-    [variables]
-    # The Python class name for the control panel (e.g., "MyControlPanel"). Mandatory.
-    controlpanel_python_class_name = MyControlPanel
-    ```
-2.  **Run Command**:
-    - `uvx plonecli add -b mrbob.ini controlpanel`
-3.  **Cleanup**: Delete `mrbob.ini`.
-
-### Creating a Form
-
-**MANDATORY**: Use `plonecli` to generate the boilerplate.
-
-**Automated Method**:
-
-*Note: Before running any `plonecli add` command, ensure your Git history is clean. If there are uncommitted changes, commit them **before** proceeding.*
-
-1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
-    *Note: The `plonecli add` command should be run from the directory where your `pyproject.toml` file is located, which is usually in the `backend` folder.*
-    ```ini
-    [variables]
-    # The Python class name for the form (e.g., "MyForm"). Mandatory.
-    form_python_class_name = MyForm
-    # The human-readable title of the form. This is used in the UI. Mandatory.
-    form_title = My Form
-    # The name of the form (used in the URL). If not provided, it's generated from form_python_class_name.
-    # form_name = my-form
-    # The interface the form registers for (e.g., "IPloneSiteRoot", "IDexterityContent").
-    # Defaults to "IPloneSiteRoot" if not specified.
-    # form_register_for = IPloneSiteRoot
-    # The permission required to access the form. Defaults to "cmf.ManagePortal".
-    # form_permission = cmf.ManagePortal
-    ```
-    _(Note: Check `bobtemplates.plone` source if uncertain about variable names, as they change occasionally)._
-2.  **Run Command**:
-    - `uvx plonecli add -b mrbob.ini form`
-3.  **Cleanup**: Delete `mrbob.ini`.
-
-### Creating an Indexer
-
-**MANDATORY**: Use `plonecli` to generate the boilerplate.
-
-**Automated Method**:
-
-*Note: Before running any `plonecli add` command, ensure your Git history is clean. If there are uncommitted changes, commit them **before** proceeding.*
-
-1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
-    *Note: The `plonecli add` command should be run from the directory where your `pyproject.toml` file is located, which is usually in the `backend` folder.*
-    ```ini
-    [variables]
-    # The name of the indexer (e.g., "my_index"). This will be used as the field name in the catalog. Mandatory.
-    indexer_name = my_index
-    ```
-2.  **Run Command**:
-    - `uvx plonecli add -b mrbob.ini indexer`
-3.  **Cleanup**: Delete `mrbob.ini`.
-
-### Creating a Subscriber
-
-**MANDATORY**: Use `plonecli` to generate the boilerplate.
-
-**Automated Method**:
-
-*Note: Before running any `plonecli add` command, ensure your Git history is clean. If there are uncommitted changes, commit them **before** proceeding.*
-
-1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
-    *Note: The `plonecli add` command should be run from the directory where your `pyproject.toml` file is located, which is usually in the `backend` folder.*
-    ```ini
-    [variables]
-    # The name of the subscriber handler (e.g., "my_handler"). Mandatory.
-    subscriber_handler_name = my_handler
-    ```
-    _Note: The template creates a subscriber for `IObjectModifiedEvent` on `IDexterityContent`. Edit `configure.zcml` manually to change the event or interface._
-2.  **Run Command**:
-    - `uvx plonecli add -b mrbob.ini subscriber`
-3.  **Cleanup**: Delete `mrbob.ini`.
-
-### Creating an Upgrade Step
-
-**MANDATORY**: Use `plonecli` to generate the boilerplate.
-
-**Automated Method**:
-
-*Note: Before running any `plonecli add` command, ensure your Git history is clean. If there are uncommitted changes, commit them **before** proceeding.*
-
-1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
-    *Note: The `plonecli add` command should be run from the directory where your `pyproject.toml` file is located, which is usually in the `backend` folder.*
-    ```ini
-    [variables]
-    # A descriptive title for the upgrade step. Mandatory.
-    upgrade_step_title = Upgrade to new version
-    # A brief explanation of what this upgrade step accomplishes.
-    upgrade_step_description = Description of what this step does
-    ```
-    _Note: Source and destination versions are automatically calculated from `metadata.xml`._
-2.  **Run Command**:
-    - `uvx plonecli add -b mrbob.ini upgrade_step`
-3.  **Cleanup**: Delete `mrbob.ini`.
-
-### Creating a Vocabulary
-
-**MANDATORY**: Use `plonecli` to generate the boilerplate.
-
-**Automated Method**:
-
-*Note: Before running any `plonecli add` command, ensure your Git history is clean. If there are uncommitted changes, commit them **before** proceeding.*
-
-1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
-    *Note: The `plonecli add` command should be run from the directory where your `pyproject.toml` file is located, which is usually in the `backend` folder.*
-    ```ini
-    [variables]
-    # The name of the vocabulary (e.g., "MyVocabulary"). Mandatory.
-    vocabulary_name = MyVocabulary
-    # Whether this is a static catalog vocabulary (y/n). Defaults to 'n'.
-    # is_static_catalog_vocab = n
-    ```
-2.  **Run Command**:
-    - `uvx plonecli add -b mrbob.ini vocabulary`
-3.  **Cleanup**: Delete `mrbob.ini`.
-
-### Creating Classic UI Elements (Views, Viewlets, Portlets, Themes)
-
-**MANDATORY**: Use `plonecli` to generate the boilerplate. Do not manually create files.
-_Note: These are for Plone Classic UI and are generally not used in a Volto-only project._
-
-**Automated Method - View**:
-
-*Note: Before running any `plonecli add` command, ensure your Git history is clean. If there are uncommitted changes, commit them **before** proceeding.*
-
-1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
-    *Note: The `plonecli add` command should be run from the directory where your `pyproject.toml` file is located, which is usually in the `backend` folder.*
-    ```ini
-    [variables]
-    # Whether to create a Python class for the view (y/n). Mandatory.
-    view_python_class = y
-    # The Python class name for the view (e.g., "MyView"). Only asked if 'view_python_class' is 'y'. Mandatory if 'view_python_class' is 'y'.
-    view_python_class_name = MyView
-    # The base class for the view (e.g., "BrowserView", "DefaultView"). Defaults to "BrowserView".
-    view_base_class = BrowserView
-    # The name of the view (used in the URL, e.g., "my-view"). If 'view_python_class' is 'y', it defaults to a normalized version of 'view_python_class_name'. Otherwise, it defaults to "my_view".
-    view_name = my-view
-    # Whether to create a ZPT template (.pt file) for the view (y/n). Mandatory.
-    view_template = y
-    # The name of the ZPT template file (e.g., "my_view.pt"). Only asked if 'view_template' is 'y'. If 'view_python_class' is 'y', it defaults to a normalized version of 'view_python_class_name'. Otherwise, it defaults to "my_view".
-    view_template_name = my_view
-    # The interface the view registers for (e.g., "*" for any content, "IContentish" for content objects). Defaults to "*".
-    view_register_for = *
-    # The permission required to access the view. Defaults to "zope2.View".
-    # view_permission = zope2.View
-    ```
-2.  **Run Command**:
-    - `uvx plonecli add -b mrbob.ini view`
-3.  **Cleanup**: Delete `mrbob.ini`.
-
-**Automated Method - Viewlet**:
-
-*Note: Before running any `plonecli add` command, ensure your Git history is clean. If there are uncommitted changes, commit them **before** proceeding.*
-
-1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
-    *Note: The `plonecli add` command should be run from the directory where your `pyproject.toml` file is located, which is usually in the `backend` folder.*
-    ```ini
-    [variables]
-    # The Python class name for the viewlet (e.g., "MyViewlet"). Mandatory.
-    viewlet_python_class_name = MyViewlet
-    # The name of the viewlet (used in the URL). Defaults to a normalized version of 'viewlet_python_class_name'.
-    viewlet_name = myviewlet
-    # Whether to create a ZPT template (.pt file) for the viewlet (y/n). Mandatory.
-    viewlet_template = y
-    # The name of the ZPT template file (e.g., "viewlet.pt"). Only asked if 'viewlet_template' is 'y'. Defaults to a normalized version of 'viewlet_name'.
-    viewlet_template_name = viewlet
-    ```
-    _Note: The `for` attribute in the `browser:viewlet` registration defaults to `plone.app.contenttypes.interfaces.IDocument`, the `manager` to `plone.app.layout.viewlets.interfaces.IAboveContentTitle`, and the `permission` to `zope2.View`. These are not directly configurable via `mrbob.ini` for this template._
-2.  **Run Command**:
-    - `uvx plonecli add -b mrbob.ini viewlet`
-3.  **Cleanup**: Delete `mrbob.ini`.
-
-**Automated Method - Portlet**:
-
-*Note: Before running any `plonecli add` command, ensure your Git history is clean. If there are uncommitted changes, commit them **before** proceeding.*
-
-1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
-    *Note: The `plonecli add` command should be run from the directory where your `pyproject.toml` file is located, which is usually in the `backend` folder.*
-    ```ini
-    [variables]
-    # The human-readable name of the portlet (e.g., "Weather"). This will be used for the title and for generating other names. Mandatory.
-    portlet_name = Weather
-    ```
-    _Note: The template automatically derives various internal names (e.g., Python class names, ZCML registration names) from `portlet_name`. The default `description` in `portlets.xml` is "A portlet which can render weather of the given place." and the `for interface` is set to `plone.app.portlets.interfaces.IColumn` (for right, left, and footer columns). These are not directly configurable via `mrbob.ini` for this template._
-2.  **Run Command**:
-    - `uvx plonecli add -b mrbob.ini portlet`
-3.  **Cleanup**: Delete `mrbob.ini`.
-
-**Automated Method - Theme**:
-
-*Note: Before running any `plonecli add` command, ensure your Git history is clean. If there are uncommitted changes, commit them **before** proceeding.*
-
-1.  **Create `mrbob.ini`**: Create this file in the root of your Python package (e.g., `src/my.package/`).
-    *Note: The `plonecli add` command should be run from the directory where your `pyproject.toml` file is located, which is usually in the `backend` folder.*
-    ```ini
-    [variables]
-    # The human-readable name of the theme (e.g., "My Theme"). Mandatory.
-    theme.name = My Theme
-    ```
-    _Note: The choice between `theme`, `theme_barceloneta`, or `theme_basic` is made at the `plonecli add` command level, not through `mrbob.ini` variables within the `theme` template itself. The `theme.name` variable is the only configurable option in `mrbob.ini` for themes._
-2.  **Run Command**:
-    - `uvx plonecli add -b mrbob.ini theme`
-    - Or for specific starting points: `theme_barceloneta`, `theme_basic`.
-3.  **Cleanup**: Delete `mrbob.ini`.
-
-**Interactive Method**: `uvx plonecli add view`, `viewlet`, etc.
-
-### Volto Block Development Patterns
-
-#### 1. Custom Block (View, Edit & Schema)
-
-The standard way to create a fully custom block.
-
-- **View (`View.jsx`)**: Renders the block content. Receives `data` props.
-- **Edit (`Edit.jsx`)**: Renders the `SidebarPortal` with `BlockDataForm` to edit settings.
-- **Schema (`schema.js`)**: JSON schema defining the fields.
-- **Registration**:
-  ```javascript
-  config.blocks.blocksConfig.myBlock = {
-    id: 'myBlock',
-    title: 'My Block',
-    icon: icon,
-    group: 'common',
-    view: MyBlockView,
-    edit: MyBlockEdit,
-    restricted: false,
-    mostUsed: false,
-    sidebarTab: 1,
-  };
-  ```
-
-#### 2. Block Variations
-
-Use variations to provide multiple templates for the same block (e.g., a Listing block that displays as a List or a Grid).
-
-- **Create View**: Create a React component for the variation (e.g., `CardView.jsx`).
-- **Register**:
-  ```javascript
-  config.blocks.blocksConfig.listing.variations = [
-    ...config.blocks.blocksConfig.listing.variations,
-    {
-      id: 'cards',
-      isDefault: false,
-      title: 'Cards',
-      template: CardView,
-    },
-  ];
-  ```
-
-#### 3. Schema Enhancers
-
-Use Schema Enhancers to dynamically modify a block's schema. This is useful when a Variation requires extra fields (e.g., "Number of Columns" for a Grid variation).
-
-- **Enhancer Function**:
-  ```javascript
-  const enhanceSchema = ({ schema, formData, intl }) => {
-    if (formData.variation === 'cards') {
-      // Add a new field
-      schema.properties.columns = {
-        title: 'Columns',
-        type: 'number',
-      };
-      schema.fieldsets[0].fields.push('columns');
-    }
-    return schema;
-  };
-  ```
-- **Register**:
-  ```javascript
-  config.blocks.blocksConfig.listing.schemaEnhancer = enhanceSchema;
-  ```
-  _Note: You can also compose multiple enhancers._
-
-#### 4. Custom Schema and View (Simple)
-
-If you don't need a custom `Edit` component (because the default block editor is sufficient and you only have simple fields), you can omit `edit` in the config. Volto will generate a default editor based on your schema.
-
-- **Requirements**: A `View` component and a `blockSchema`.
-- **Registration**:
-  ```javascript
-  config.blocks.blocksConfig.simpleBlock = {
-    id: 'simpleBlock',
-    title: 'Simple Block',
-    view: SimpleView,
-    blockSchema: simpleSchema,
-    // No 'edit' key needed; Volto uses DefaultEditBlockData
-  };
-  ```
+See "Using Schema Enhancers" in the Frontend Scenario Catalog above.
