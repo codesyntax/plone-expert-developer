@@ -100,16 +100,16 @@ Use **Cookieplone** (not plonecli) for new projects.
 ```bash
 uvx cookieplone \
   --no-input \
-  --extra-context project_title="My Awesome Plone Project" \
-  --extra-context project_slug="my-awesome-plone-project" \
-  --extra-context description="A new Plone 6 project generated automatically." \
-  --extra-context author="AI Assistant" \
-  --extra-context email="ai@example.com" \
-  --extra-context language_code="en" \
-  --extra-context container_registry="GitHub" \
-  --extra-context devops_cache="1" \
-  --extra-context devops_ansible="1" \
-  --extra-context devops_gha_deploy="1"
+  project_title="My Awesome Plone Project" \
+  project_slug="my-awesome-plone-project" \
+  description="A new Plone 6 project generated automatically." \
+  author="AI Assistant" \
+  email="ai@example.com" \
+  language_code="en" \
+  container_registry="github" \
+  devops_cache="1" \
+  devops_ansible="1" \
+  devops_gha_deploy="1"
 ```
 
 For Classic UI: use `uvx cookieplone classic_project` with the same flags.
@@ -624,6 +624,17 @@ related_items = RelationList(
 )
 ```
 
+If you want some of those fields to be indexed in the catalog to be searchable in the full-text index, you need to signal that specifically like this:
+
+```python
+from plone.app.dexterity.textindexer import searchable
+
+searchable("details")
+details = RichText(title=u"Details", required=False)
+```
+
+If the user asks to add a field that has a dropdown selector or to select an item from a list of available values, create a new vocabulary for that.
+
 ### Volto Schema Widgets
 
 Common widgets used in Block schemas (`schema.js`).
@@ -681,6 +692,7 @@ Behaviors are reusable components that add fields and functionality to content t
 - `plone.shortname`: Rename an item from its edit form.
 - `plone.namefromtitle`: Auto-generate URL slug from title.
 - `plone.namefromfilename`: Auto-generate URL slug from primary field file name (default for File and Image types).
+- `plone.textindexer`: This provides indexing support for extra-fields in this content-type.
 
 ### Additional Behaviors
 
