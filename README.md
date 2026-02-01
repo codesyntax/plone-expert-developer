@@ -1,6 +1,6 @@
 # Plone Expert Developer
 
-DISCLAIMER: proof-of-concept of AI agent skills to create an plone expert developer
+DISCLAIMER: proof-of-concept of AI agent [skill](https://skills.sh/docs) to create an plone expert developer
 
 
 ## How to install
