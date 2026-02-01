@@ -693,6 +693,7 @@ Behaviors are reusable components that add fields and functionality to content t
 - `plone.namefromtitle`: Auto-generate URL slug from title.
 - `plone.namefromfilename`: Auto-generate URL slug from primary field file name (default for File and Image types).
 - `plone.textindexer`: This provides indexing support for extra-fields in this content-type.
+- `plone.translatabe`: When creating multilingual sites, this behavior provides the option to link contents of different languages under a single translation unit, to be able to create links to the different language-versions of the content. Use it in created content-types but only in multilingual sites.
 
 ### Additional Behaviors
 
