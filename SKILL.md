@@ -33,6 +33,15 @@ These rules apply to every task. Never violate them.
 9. **Follow community standards** — Use `plone.api`, black, flake8, prettier, eslint.
 10. **Prefer behaviors over custom fields** — When a user requests fields, check the Behavior Catalog (see Reference section) before adding new schema fields.
 
+## Official Documentation & Knowledge Retrieval
+
+When you need detailed information, API references, or encounter an unknown concept, you MUST use the `webfetch` tool to read the official Plone LLM documentation.
+
+- **For a comprehensive index of all documentation:** Fetch `https://6.docs.plone.org/llms.txt` to find the exact markdown file URL you need.
+- **For the full, concatenated documentation (use with caution, very large):** Fetch `https://6.docs.plone.org/llms-full.txt`.
+
+Always prefer fetching the specific markdown file from the index over guessing or relying on outdated knowledge.
+
 ## Decision Tree
 
 Use this routing logic to determine the correct approach for each task.
@@ -393,10 +402,13 @@ A block consists of: **View** component, **Edit** component (optional), **schema
    ```
 
 If you don't need a custom Edit component, omit `edit` and use `blockSchema` instead — Volto generates a default editor:
+
 ```javascript
 config.blocks.blocksConfig.simpleBlock = {
   id: 'simpleBlock',
   title: 'Simple Block',
+  icon: icon,
+  group: 'common',
   view: SimpleView,
   blockSchema: simpleSchema,
 };
@@ -589,169 +601,25 @@ Use conditions to apply rules only on specific pages.
 
 ## Reference: Field Types and Widgets
 
-### Backend Fields (zope.schema)
+Do not guess field types or widgets. Fetch the official documentation for the complete, up-to-date lists:
 
-Common fields used in Dexterity content types and behaviors.
-
-```python
-from zope import schema
-from plone.app.textfield import RichText
-from plone.namedfile.field import NamedBlobImage, NamedBlobFile
-from z3c.relationfield.schema import RelationChoice, RelationList
-from plone.app.vocabularies.catalog import CatalogSource
-
-# Text
-title = schema.TextLine(title=u"Title", required=True)
-description = schema.Text(title=u"Description", required=False)
-details = RichText(title=u"Details", required=False)
-
-# Numbers & Logic
-count = schema.Int(title=u"Count", default=0)
-enabled = schema.Bool(title=u"Enabled", default=True)
-
-# Dates
-start = schema.Datetime(title=u"Start Date")
-
-# Files
-image = NamedBlobImage(title=u"Image", required=False)
-file = NamedBlobFile(title=u"File", required=False)
-
-# Relations
-related_items = RelationList(
-    title=u"Related Items",
-    default=[],
-    value_type=RelationChoice(title=u"Target", source=CatalogSource())
-)
-```
-
-If you want some of those fields to be indexed in the catalog to be searchable in the full-text index, you need to signal that specifically like this:
-
-```python
-from plone.app.dexterity.textindexer import searchable
-
-searchable("details")
-details = RichText(title=u"Details", required=False)
-```
-
-If the user asks to add a field that has a dropdown selector or to select an item from a list of available values, create a new vocabulary for that.
-
-### Volto Schema Widgets
-
-Common widgets used in Block schemas (`schema.js`).
-
-```javascript
-properties: {
-  // Text
-  title: { title: 'Title', widget: 'text' },
-  description: { title: 'Description', widget: 'textarea' },
-  text: { title: 'Body Text', widget: 'richtext' },
-
-  // Numbers & Logic
-  count: { title: 'Count', type: 'number' },
-  visible: { title: 'Visible', type: 'boolean' }, // Renders as checkbox
-
-  // Choices
-  color: {
-    title: 'Color',
-    widget: 'select', // Also: 'radio', 'simple_color_picker'
-    choices: [['red', 'Red'], ['blue', 'Blue']],
-  },
-
-  // Relations & Links
-  internal_link: {
-    title: 'Internal Link',
-    widget: 'object_browser',
-    mode: 'link', // 'image', 'multiple'
-  },
-  external_url: { title: 'External URL', widget: 'url' },
-
-  // Special
-  align: { title: 'Alignment', widget: 'align' },
-  date: { title: 'Date', widget: 'datetime' },
-}
-```
+- **Backend Fields (zope.schema):** Fetch `https://6.docs.plone.org/_sources/backend/fields.md`
+- **Volto Schema Widgets:** Fetch `https://6.docs.plone.org/_sources/volto/reference/widgets.md`
 
 ## Reference: Behavior Catalog
 
-Behaviors are reusable components that add fields and functionality to content types. Activate them in the content type's XML definition (e.g., `profiles/default/types/MyType.xml`). When a user asks for a field, check here first before defining a new schema field.
+Behaviors are reusable components that add fields and functionality to content types. Activate them in the content type's XML definition. When a user asks for a field, check the official behavior catalog first before defining a new schema field.
 
-### Common Behaviors (plone.app.contenttypes)
+- **Complete Behavior Catalog:** Fetch `https://6.docs.plone.org/_sources/backend/behaviors.md`
 
-- `plone.richtext`: Rich text field for main body content.
-- `plone.leadimage`: Lead Image field, often displayed prominently.
-- `plone.collection`: Query criteria for Collection content types.
-- `plone.tableofcontents`: Auto-generates table of contents from headings.
-
-### General Behaviors (plone.app.dexterity)
-
-- `plone.basic`: Dublin Core title and description. Only include if `plone.dublincore` is not included.
-- `plone.categorization`: Tags (keywords) and language. Only include if `plone.dublincore` is not included.
-- `plone.publication`: Effective and expiration dates. Only include if `plone.dublincore` is not included.
-- `plone.ownership`: Creator, contributor, and rights fields. Only include if `plone.dublincore` is not included.
-- `plone.dublincore`: Includes `plone.basic`, `plone.categorization`, and `plone.ownership`. This is the default — include it unless the user specifies otherwise.
-- `plone.shortname`: Rename an item from its edit form.
-- `plone.namefromtitle`: Auto-generate URL slug from title.
-- `plone.namefromfilename`: Auto-generate URL slug from primary field file name (default for File and Image types).
-- `plone.textindexer`: This provides indexing support for extra-fields in this content-type.
-- `plone.translatabe`: When creating multilingual sites, this behavior provides the option to link contents of different languages under a single translation unit, to be able to create links to the different language-versions of the content. Use it in created content-types but only in multilingual sites.
-
-### Additional Behaviors
-
-- `plone.versioning` (from `plone.app.versioningbehavior`): Versioning support using CMFEditions.
-- `plone.relateditems` (from `plone.app.relationfield`): Related items field.
-- `plone.locking` (from `plone.app.lockingbehavior`): Content locking support.
-
-### Event Behaviors (plone.app.event)
-
-These are designed for Event content types but contain useful fields for other scenarios too.
-
-- `plone.eventbasic`: `start`, `end`, `whole_day`, `open_end` fields.
-- `plone.eventrecurrence`: Recurrence configuration.
-- `plone.eventlocation`: `location` field.
-- `plone.eventattendees`: `attendees` field.
-- `plone.eventcontact`: `contact_name`, `contact_email`, `contact_phone`, `event_url` fields.
-
-### Important Note on Default Behaviors
-
+**Important Note on Default Behaviors:**
 Always inspect the `.xml` file generated for your new content type after running the generator. The file (typically `profiles/default/types/MyType.xml`) lists auto-included behaviors. This prevents duplicating fields or functionality.
 
 ## Reference: Volto Block Patterns
 
-### Pattern 1: Full Custom Block (View + Edit + Schema)
+For detailed information on creating and configuring Volto blocks, refer to the official documentation.
 
-See "Creating a Custom Volto Block" in the Frontend Scenario Catalog above for a complete example.
+- **Blocks Anatomy & Registration:** Fetch `https://6.docs.plone.org/_sources/volto/blocks/anatomy.md`
+- **Blocks Developer Notes:** Fetch `https://6.docs.plone.org/_sources/volto/blocks/core/index.md`
 
-Registration pattern:
-```javascript
-config.blocks.blocksConfig.myBlock = {
-  id: 'myBlock',
-  title: 'My Block',
-  icon: icon,
-  group: 'common',
-  view: MyBlockView,
-  edit: MyBlockEdit,
-  restricted: false,
-  mostUsed: false,
-  sidebarTab: 1,
-};
-```
-
-### Pattern 2: Simple Block (View + Schema, no custom Edit)
-
-Omit `edit` and use `blockSchema` — Volto generates a default editor:
-```javascript
-config.blocks.blocksConfig.simpleBlock = {
-  id: 'simpleBlock',
-  title: 'Simple Block',
-  view: SimpleView,
-  blockSchema: simpleSchema,
-};
-```
-
-### Pattern 3: Block Variations
-
-See "Adding Block Variations" in the Frontend Scenario Catalog above.
-
-### Pattern 4: Schema Enhancers
-
-See "Using Schema Enhancers" in the Frontend Scenario Catalog above.
+*(Note: See the "Frontend Scenario Catalog" above for quick templates for custom blocks, variations, and schema enhancers.)*
