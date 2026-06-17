@@ -47,6 +47,18 @@ class TestSetup(unittest.TestCase):
         self.assertTrue(self.layer['portal'].portal_setup.isProductInstalled('my.package'))
 ```
 
+## Standard Generator Procedure
+
+All backend component generation follows this same 3-step procedure:
+
+1. **Create `mrbob.ini`** in the directory containing `pyproject.toml`.
+   ```ini
+   [variables]
+   # See specific module for variable names
+   ```
+2. **Run the command**: `uvx plonecli add -b mrbob.ini <template_name>`
+3. **Delete `mrbob.ini`** immediately after completion.
+
 ## Backend Scenario Catalog
 
 ### Creating an Add-on Package
@@ -128,12 +140,17 @@ Primary helper for formatting and structural checks.
 - **`normalizeString(text)`**: Converts text to a valid ID.
 - **`cropText(text, length, ellipsis)`**: Safely crops text on word boundaries.
 - **`isStructuralFolder()`**: Boolean check for folderish items.
+- **`getCurrentUrl()`**: Returns the actual URL plus the query string.
+- **`getParentObject()`**: Returns the parent (aq_inner/aq_parent) of the context.
 
 ### 2. @@plone_portal_state (IPortalState)
 Global site information.
-- **`portal_url()` / `navigation_root_url()`**: Site root and nav root URLs.
+- **`portal_url()` / `navigation_root_url()`**: Site root and nav root URLs. Use `navigation_root_url` for multi-site setups where sections act as roots.
+- **`navigation_root()`**: The current navigation root object. Essential for catalog searches restricted to the current site/section.
+- **`portal_title()`**: The title of the Plone site.
 - **`member()`**: The current authenticated member object.
 - **`anonymous()`**: Boolean check for anonymous users.
+- **`language()`**: The current language code (e.g., 'en').
 
 ### 3. @@plone_context_state (IContextState)
 State of the current context/object.
@@ -141,6 +158,51 @@ State of the current context/object.
 - **`is_default_page()`**: Boolean check for folder default pages.
 - **`workflow_state()`**: The current workflow state ID.
 - **`is_editable()`**: Whether the user can edit the context.
+- **`object_url()`**: The URL of the current object.
+- **`is_folderish()`**: True if the object is folderish (structural or not).
+- **`parent()`**: The direct parent of the current object.
+
+### Codebase Discovery: Available Methods
+
+To find all available methods for these helper views, inspect the following interfaces in the Plone source code:
+
+- **IPlone (`@@plone`)**: `Products.CMFPlone.browser.interfaces.IPlone`
+- **IPortalState (`@@plone_portal_state`)**: `plone.app.layout.globals.interfaces.IPortalState`
+- **IContextState (`@@plone_context_state`)**: `plone.app.layout.globals.interfaces.IContextState`
+- **ITools (`@@plone_tools`)**: `plone.app.layout.globals.interfaces.ITools`
+
+### Usage Patterns
+
+**Python Example:**
+```python
+from zope.component import getMultiAdapter
+
+# Getting multiple states
+portal_state = getMultiAdapter((self.context, self.request), name="plone_portal_state")
+context_state = getMultiAdapter((self.context, self.request), name="plone_context_state")
+
+is_anon = portal_state.anonymous()
+is_folder = context_state.is_folderish()
+site_title = portal_state.portal_title()
+
+# Common pattern: Catalog search restricted to navigation root
+from plone import api
+results = api.content.find(
+    context=portal_state.navigation_root(),
+    portal_type="Document",
+)
+```
+
+**ZPT Example:**
+```html
+<div tal:define="plone context/@@plone;
+                 portal_state context/@@plone_portal_state;
+                 context_state context/@@plone_context_state">
+  <h1 tal:content="context_state/object_url">URL</h1>
+  <p tal:condition="portal_state/anonymous">You are browsing as guest.</p>
+  <span tal:replace="python:plone.toLocalizedTime(context.Date())" />
+</div>
+```
 
 ### 4. @@images (Modern Image Rendering)
 Use the `@@images` view for responsive images. **Note**: In ZPT, use `python:` expressions to call methods with parameters.

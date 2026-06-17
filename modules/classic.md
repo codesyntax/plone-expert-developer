@@ -7,6 +7,7 @@ This module covers Plone 6 Classic UI development using Diazo theming, Browser V
 - **Classic UI strictly** — Use Browser Views, Viewlets, and Portlets.
 - **Bootstrap 5** — Standard for Plone 6 Classic UI.
 - **Diazo** — Theming via `rules.xml`.
+- **Automated Scaffolding** — Use `plonecli` (or `make add`) with `mrbob.ini` files (see procedure in Backend module).
 
 ## Diazo Theming
 

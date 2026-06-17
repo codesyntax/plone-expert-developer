@@ -36,15 +36,3 @@ Before performing any task, you MUST identify the project type to load the corre
 
 3. **Announce Detection**:
    State clearly: *"I've detected a [Type] project. Loading [Module] expertise..."*
-
-## Standard Generator Procedure
-
-All backend component generation follows this same 3-step procedure:
-
-1. **Create `mrbob.ini`** in the directory containing `pyproject.toml`.
-   ```ini
-   [variables]
-   # See specific module for variable names
-   ```
-2. **Run the command**: `uvx plonecli add -b mrbob.ini <template_name>`
-3. **Delete `mrbob.ini`** immediately after completion.
