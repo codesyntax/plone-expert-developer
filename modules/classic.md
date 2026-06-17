@@ -114,6 +114,17 @@ Register modern JS/CSS bundles in `profiles/default/registry/bundles.xml`.
 </registry>
 ```
 
+## Advanced Layouts (plone.app.mosaic)
+
+For building advanced, user-customizable layouts in Classic UI, use `plone.app.mosaic`. It allows editors to create complex page structures using tiles and drag-and-drop.
+
+- **Mosaic Documentation**: [https://plone.github.io/plone.app.mosaic/](https://plone.github.io/plone.app.mosaic/)
+
+### Core Concepts
+- **Layouts**: Defined in `registry.xml` or through the UI.
+- **Tiles**: Small, reusable UI components. Use `plone.app.tiles` to create new ones.
+- **Form Layouts**: Define which fields are available as tiles.
+
 ## Classic UI Testing
 
 Use **Robot Framework** for integration tests in Classic UI.
