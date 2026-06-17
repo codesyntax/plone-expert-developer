@@ -34,17 +34,33 @@ Core Plone and `plonecli` generators rely on `plone.app.testing` layers.
 - **Layers**: Define a `Fixture` class and `Integration_Testing` / `Functional_Testing` layers in `testing.py`.
 - **TestCase**: Inherit from `unittest.TestCase`.
 
-Example:
+#### REST API Functional Testing
+Use the patterns from `plone.restapi.tests`.
+- **RelativeSession**: Use from `plone.restapi.testing`.
+- **Mandatory**: Include `Accept: application/json` and run `transaction.commit()` before the request.
+
+**Example:**
 ```python
-from my.package.testing import MY_PACKAGE_INTEGRATION_TESTING
+from plone.restapi.testing import RelativeSession
+import transaction
 import unittest
 
-class TestSetup(unittest.TestCase):
-    layer = MY_PACKAGE_INTEGRATION_TESTING
+class TestMyService(unittest.TestCase):
+    layer = MY_PACKAGE_FUNCTIONAL_TESTING
 
-    def test_product_installed(self):
-        """Test if the product is installed."""
-        self.assertTrue(self.layer['portal'].portal_setup.isProductInstalled('my.package'))
+    def setUp(self):
+        self.portal = self.layer['portal']
+        self.api_session = RelativeSession(self.portal.absolute_url(), test=self)
+        self.api_session.headers.update({"Accept": "application/json"})
+
+    def test_endpoint(self):
+        # Setup data and commit
+        self.portal.invokeFactory("Document", id="doc1")
+        transaction.commit()
+
+        response = self.api_session.get("/doc1/@my-service")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["@type"], "Document")
 ```
 
 ## Standard Generator Procedure
@@ -85,6 +101,30 @@ dexterity_type_activate_default_behaviors = y
 ```ini
 [variables]
 service_class_name = MyService
+```
+
+#### REST API Implementation Pattern
+When implementing the `Service` class:
+- **`render()`**: The primary method that returns the JSON-serializable dictionary.
+- **Manual JSON Errors**: Manually set the status code and return a structured error body.
+- **ISerializeToJson**: Use/implement this adapter for complex content-type serialization.
+
+**Python Example:**
+```python
+from plone.restapi.services import Service
+
+class MyService(Service):
+    def render(self):
+        # Perform logic
+        if not self.context.get('valid'):
+            self.request.response.setStatus(400)
+            return {"error": {"message": "Invalid context state"}}
+
+        # Return serializable dict
+        return {
+            "title": self.context.Title(),
+            "custom_field": "some_value"
+        }
 ```
 
 ### Creating a Behavior
@@ -247,10 +287,42 @@ from plone.base import i18nl10n
 from zope.i18n import translate
 
 # Get msgid for January (1)
-msgid = i18nl10n.monthname_msgid(1) 
+msgid = i18nl10n.monthname_msgid(1)
 # Result: 'month_jan'
 translated = translate(msgid, domain='plonelocales', context=self.request)
 ```
+
+## GenericSetup & Configuration
+
+Plone configuration belongs in GenericSetup XML files.
+- **`registry.xml`**: Central configuration (standard settings, component overrides).
+- **`catalog.xml`**: For defining new indexes and metadata columns.
+- **`controlpanel.xml`**: For custom control panels.
+- **`types/`**: Content type definitions (FTI).
+
+### catalog.xml Pattern
+Use this to make fields searchable or available in catalog brains.
+```xml
+<?xml version="1.0"?>
+<object name="portal_catalog">
+  <!-- New Indexes -->
+  <index name="my_field" meta_type="FieldIndex">
+    <indexed_attr value="my_field"/>
+  </index>
+  <index name="my_tags" meta_type="KeywordIndex">
+    <indexed_attr value="my_tags"/>
+  </index>
+  <index name="is_featured" meta_type="BooleanIndex">
+    <indexed_attr value="is_featured"/>
+  </index>
+
+  <!-- Metadata Columns -->
+  <column value="my_field"/>
+</object>
+```
+
+### Managing Configuration Changes
+- **Upgrade Steps**: Use `uvx plonecli add upgrade_step` for any changes on live sites. Never rely on re-installing the product.
 
 ## Zope Component Architecture (ZCA) Patterns
 
@@ -304,15 +376,15 @@ Use `plone.memoize` to cache expensive method calls. Choose the correct decorato
 
 - **BrowserViews**: Use `plone.memoize.view.memoize`. It uses the request to memoize results, ensuring the cache is cleared at the end of the request.
 - **Content-type classes**: Use `plone.memoize.instance.memoize`. It memoizes results in an attribute of the context/instance, persisting for the lifetime of that object in memory.
-- **Cross-request (RAM)**: Use `plone.memoize.ram.cache` for global caching. You MUST provide a cache key function.
+- **Cross-request (RAM)**: Use `plone.memoize.ram.cache` for global caching across requests. You MUST provide a cache key function.
 
 **RAM Cache Example:**
 ```python
 from plone.memoize import ram
 
 def _render_cachekey(method, self, param1, param2):
-    # Key should include function name and all relevant parameters
-    return (self.__name__, param1, param2)
+    # Key MUST include function name (self.__name__) and all relevant parameters
+    return (method.__name__, param1, param2)
 
 class MyView(BrowserView):
     @ram.cache(_render_cachekey)
