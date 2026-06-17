@@ -1,5 +1,6 @@
 ---
 name: plone-expert-developer
+version: 2.0.0
 description: Expert Plone 6 and Volto development guidance. Covers backend (Python, Dexterity, plone.restapi) and frontend (TypeScript, Volto, Classic UI).
 ---
 
