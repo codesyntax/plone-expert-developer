@@ -205,18 +205,17 @@ results = api.content.find(
 ```
 
 ### Accessing the Request Globally
-When the `request` object is not available in the current local context (e.g., inside a utility or a low-level event subscriber), use `get_request` from `plone.base.utils`.
+When the `request` object is not available in the current local context (e.g., inside a utility or a low-level event subscriber), use `getRequest` from `zope.globalrequest`.
 
 **Python Example:**
 ```python
-from plone.base.utils import get_request
+from zope.globalrequest import getRequest
 
-request = get_request()
+request = getRequest()
 if request:
     # Use request.form, request.SESSION, etc.
     pass
 ```
-*Note: Historically `zope.globalrequest.getRequest` was used, but `plone.base.utils.get_request` is the preferred helper in modern Plone.*
 
 ### 4. @@images (Modern Image Rendering)
 Use the `@@images` view for responsive images. **Note**: In ZPT, use `python:` expressions to call methods with parameters.
