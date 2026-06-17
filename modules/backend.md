@@ -299,15 +299,24 @@ results = catalog.unrestrictedSearchResults(portal_type="Document")
 
 ## Performance & Caching
 
-### 1. Simple Memoization
-Use `plone.memoize` to cache expensive method calls.
+### 1. Memoization (plone.memoize)
+Use `plone.memoize` to cache expensive method calls. Choose the correct decorator based on the scope:
+
+- **BrowserViews**: Use `plone.memoize.view.memoize`. It uses the request to memoize results, ensuring the cache is cleared at the end of the request.
+- **Content-type classes**: Use `plone.memoize.instance.memoize`. It memoizes results in an attribute of the context/instance, persisting for the lifetime of that object in memory.
+- **Cross-request (RAM)**: Use `plone.memoize.ram.cache` for global caching. You MUST provide a cache key function.
+
+**RAM Cache Example:**
 ```python
-from plone.memoize import instance
+from plone.memoize import ram
+
+def _render_cachekey(method, self, param1, param2):
+    # Key should include function name and all relevant parameters
+    return (self.__name__, param1, param2)
 
 class MyView(BrowserView):
-    @instance.memoize
-    def expensive_method(self):
-        # Result is cached on the object instance
+    @ram.cache(_render_cachekey)
+    def expensive_calculation(self, param1, param2):
         return ...
 ```
 
