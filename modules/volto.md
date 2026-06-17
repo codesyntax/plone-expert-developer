@@ -123,14 +123,22 @@ describe('MyBlock', () => {
 
 ## Configuration
 
-Register components in your add-on's `index.ts`:
+Register components and overrides in your add-on's `index.ts`:
+
+### Component Registration Pattern
+Favor `registerComponent` over shadowing for core component overrides.
 ```typescript
-import MyBlockView from './components/Blocks/MyBlock/View';
-import MyBlockEdit from './components/Blocks/MyBlock/Edit';
-import icon from '@plone/volto/icons/block.svg';
 import { ConfigRegistry } from '@plone/volto/types';
+import MyCustomHeader from './components/theme/Header/Header';
 
 const applyConfig = (config: ConfigRegistry) => {
+  // Register component override
+  config.registerComponent({
+    name: 'Header',
+    component: MyCustomHeader,
+  });
+
+  // Register custom block
   config.blocks.blocksConfig.myBlock = {
     id: 'myBlock',
     title: 'My Block',
