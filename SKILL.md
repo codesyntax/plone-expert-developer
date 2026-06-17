@@ -20,19 +20,20 @@ These rules apply to every task. Never violate them.
 
 ## Project Discovery & Routing (Mandatory)
 
-Before performing any task, you MUST identify the project type to load the correct expertise.
+You MUST identify the project type before performing any task. This discovery phase is the first step of every session.
 
-1. **Scan the environment**:
-   - Check for `volto.config.{js,ts}` or `frontend/package.json` -> **Volto (TypeScript)**.
-   - Check for `browserlayer.xml`, `rules.xml`, or `manifest.cfg` -> **Classic UI**.
-   - Check for `pyproject.toml` or `backend/` -> **Backend**.
-   - Check current working directory to resolve ambiguity in Full-Stack projects.
+### 1. Active Discovery
+Immediately run `ls -R` or `glob` to find project fingerprints.
 
-2. **Load the Module(s)**:
-   - Use the `read` tool to load the relevant module(s) from the `modules/` directory:
-     - `modules/backend.md` (Always load for Python tasks)
-     - `modules/volto.md` (If Volto/TSX detected)
-     - `modules/classic.md` (If Classic UI detected)
+### 2. Identify the Stack
+- **Volto (TypeScript)**: Presence of `volto.config.{js,ts}`, `tsconfig.json`, or `frontend/package.json` containing `@plone/volto`.
+- **Classic UI**: Presence of `browserlayer.xml`, `rules.xml`, `manifest.cfg`, or `pyproject.toml` with `plonetheme.barceloneta`.
+- **Modern Backend**: Presence of `pyproject.toml`, `pytest-plone` in dev dependencies, or namespace packages in `src/`.
 
-3. **Announce Detection**:
-   State clearly: *"I've detected a [Type] project. Loading [Module] expertise..."*
+### 3. Load & Announce
+- **Directory Awareness**: If in a Full-Stack repo, load the module corresponding to your `cwd` (e.g., `frontend/` -> Volto, `backend/` -> Backend).
+- **Load the Module(s)**: Use the `read` tool to load:
+  - `modules/backend.md` (For Python/Zope tasks)
+  - `modules/volto.md` (For TypeScript/React tasks)
+  - `modules/classic.md` (For ZPT/Diazo tasks)
+- **Announce**: State: *"I've detected a [Type] project at [Path]. Loading [Module] expertise..."*
