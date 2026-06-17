@@ -252,6 +252,75 @@ msgid = i18nl10n.monthname_msgid(1)
 translated = translate(msgid, domain='plonelocales', context=self.request)
 ```
 
+## Zope Component Architecture (ZCA) Patterns
+
+### 1. Named Utility Lookup
+```python
+from zope.component import getUtility
+from plone.registry.interfaces import IRegistry
+
+registry = getUtility(IRegistry)
+```
+
+### 2. Multi-Adapter Lookup
+Used when an adapter depends on both the context and the request.
+```python
+from zope.component import getMultiAdapter
+
+# e.g., looking up a view or a specific state view
+view = getMultiAdapter((context, request), name="my-view")
+```
+
+## Security & CSRF Protection
+
+### 1. Write Protection (CSRF)
+For any view that performs data modification, you MUST protect it against CSRF.
+```python
+from plone.protect.utils import addTokenToUrl
+from plone.protect.authenticator import check_authenticator
+from plone.protect import PostOnly
+
+# In a browser view:
+def __call__(self):
+    # Ensure it's a POST request
+    PostOnly(self.request)
+    # Check the CSRF authenticator token
+    check_authenticator(self.request)
+    # Perform modification...
+```
+
+### 2. Elevated Privileges (unrestrictedSearchResults)
+Use `unrestrictedSearchResults` only when you need to find objects the current user doesn't have permission to see (use with extreme caution).
+```python
+from plone import api
+catalog = api.portal.get_tool("portal_catalog")
+results = catalog.unrestrictedSearchResults(portal_type="Document")
+```
+
+## Performance & Caching
+
+### 1. Simple Memoization
+Use `plone.memoize` to cache expensive method calls.
+```python
+from plone.memoize import instance
+
+class MyView(BrowserView):
+    @instance.memoize
+    def expensive_method(self):
+        # Result is cached on the object instance
+        return ...
+```
+
+### 2. plone.app.caching
+Standard Plone 6 caching involves defining rules in `registry.xml`. Always prefer using the `With caching proxy` profile in production to support Varnish/CDN.
+
+## In-Place Migration Patterns
+
+When migrating from Plone 5.x to 6.0:
+1. **Update FTI**: Ensure `icon_expr` uses the new `${portal_url}/++plone++...` pattern.
+2. **Behaviors**: Replace legacy behaviors (e.g., `plone.app.contenttypes.interfaces.ILeadImage`) with the canonical Plone 6 equivalents (`plone.leadimage`).
+3. **Registry**: Use `registry.xml` GenericSetup steps to migrate settings instead of Python scripts whenever possible.
+
 ## Best Practices
 
 - **Avoid raw ZODB manipulation**: Always use `plone.api`.

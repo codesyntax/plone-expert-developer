@@ -98,6 +98,22 @@ export default BasePattern.extend({
 });
 ```
 
+## Resource Bundles (bundles.xml)
+
+Register modern JS/CSS bundles in `profiles/default/registry/bundles.xml`.
+```xml
+<registry>
+  <records interface="plone.bundles.interfaces.IBundleRegistry"
+           prefix="plone.bundles.my-addon">
+    <value key="enabled">True</value>
+    <value key="csscompilation">++plone++my.addon/my-addon.css</value>
+    <value key="jscompilation">++plone++my.addon/my-addon.js</value>
+    <value key="depends">plone</value>
+    <value key="load_defer">True</value>
+  </records>
+</registry>
+```
+
 ## Classic UI Testing
 
 Use **Robot Framework** for integration tests in Classic UI.

@@ -6,7 +6,8 @@ This module covers Volto development using TypeScript, React, and the Blocks eng
 
 - **TypeScript strictly** — Use `.ts` and `.tsx` for all new components.
 - **Functional Components** — Use Hooks (`useState`, `useEffect`, `useSelector`).
-- **Shadowing** — Customize core components via `src/customizations/`.
+- **Component Extensibility** — Prefer `config.registerComponent` or `blocksConfig` overrides over shadowing to reduce maintenance debt.
+- **Shadowing (Caution)** — Use `src/customizations/` only when a component cannot be extended via the registry. Mirror paths exactly.
 
 ## Volto Component Patterns (TypeScript)
 
